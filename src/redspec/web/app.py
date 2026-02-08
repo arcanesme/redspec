@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -10,15 +12,23 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 _WEB_DIR = Path(__file__).parent
 _TEMPLATES_DIR = _WEB_DIR / "templates"
 _STATIC_DIR = _WEB_DIR / "static"
 
 
+# ---------- Request / response models ----------
+
+
 class YAMLBody(BaseModel):
     yaml_content: str
+
+
+class ValidateRequest(BaseModel):
+    yaml_content: str
+    lint: bool = False
 
 
 class GenerateRequest(BaseModel):
@@ -28,6 +38,61 @@ class GenerateRequest(BaseModel):
     dpi: int | None = None
     format: str | None = None
     glow: bool | None = None
+
+
+class ExportRequest(BaseModel):
+    yaml_content: str
+    format: str = Field(description="Export format: mermaid, plantuml, or drawio.")
+
+
+class DiffRequest(BaseModel):
+    old_yaml: str
+    new_yaml: str
+    format: str = "svg"
+
+
+class GalleryUpdateRequest(BaseModel):
+    yaml_content: str | None = None
+    name: str | None = None
+
+
+class CustomThemeRequest(BaseModel):
+    name: str
+    graph_attr: dict[str, str]
+    node_attr: dict[str, str]
+    edge_attr: dict[str, str]
+    cluster_base: dict[str, str]
+
+
+# ---------- Helpers ----------
+
+
+def _parse_yaml_content(yaml_content: str) -> dict:
+    """Parse YAML string to dict, raising HTTPException on failure."""
+    import yaml as pyyaml
+
+    try:
+        raw = pyyaml.safe_load(yaml_content)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid YAML: {exc}")
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=400, detail="YAML must be a mapping")
+    return raw
+
+
+def _resolve_slug_dir(output_dir: Path, slug: str) -> Path:
+    """Resolve and validate a gallery slug directory."""
+    slug_dir = (output_dir / slug).resolve()
+    try:
+        slug_dir.relative_to(output_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not slug_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Diagram '{slug}' not found")
+    return slug_dir
+
+
+# ---------- Application factory ----------
 
 
 def create_app(output_dir: Path | None = None) -> FastAPI:
@@ -40,9 +105,13 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
     templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
+    # ---- Pages ----
+
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(request, "index.html")
+
+    # ---- Templates ----
 
     @app.get("/api/templates")
     async def list_templates() -> list[str]:
@@ -58,41 +127,57 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail=f"Template {name!r} not found")
         return JSONResponse({"name": name, "content": _TEMPLATES[name]})
 
-    @app.post("/api/validate")
-    async def validate_yaml(body: YAMLBody) -> JSONResponse:
-        import yaml as pyyaml
+    # ---- Validate (with optional lint) ----
 
+    @app.post("/api/validate")
+    async def validate_yaml(body: ValidateRequest) -> JSONResponse:
         from redspec.models.diagram import DiagramSpec
 
+        raw = _parse_yaml_content(body.yaml_content)
+
         try:
-            raw = pyyaml.safe_load(body.yaml_content)
-            if not isinstance(raw, dict):
-                return JSONResponse({"valid": False, "error": "YAML must be a mapping"})
             spec = DiagramSpec.model_validate(raw)
-            return JSONResponse({
-                "valid": True,
-                "name": spec.diagram.name,
-                "resources": len(spec.resources),
-                "connections": len(spec.connections),
-            })
         except Exception as exc:
             return JSONResponse({"valid": False, "error": str(exc)})
 
+        result: dict[str, Any] = {
+            "valid": True,
+            "name": spec.diagram.name,
+            "resources": len(spec.resources),
+            "connections": len(spec.connections),
+        }
+
+        if body.lint:
+            from redspec.linter import lint as run_lint
+
+            warnings = run_lint(spec)
+            result["lint_warnings"] = [
+                {"rule": w.rule, "message": w.message, "resource_name": w.resource_name}
+                for w in warnings
+            ]
+
+        return JSONResponse(result)
+
+    # ---- Schema ----
+
+    @app.get("/api/schema")
+    async def get_schema() -> JSONResponse:
+        from redspec.schemas.generator import generate_schema
+
+        return JSONResponse(generate_schema())
+
+    # ---- Generate ----
+
     @app.post("/api/generate")
     async def generate_diagram(body: GenerateRequest) -> FileResponse:
-        import yaml as pyyaml
-
         from redspec.generator.output_organizer import organize_output
         from redspec.generator.pipeline import generate as run_pipeline
         from redspec.icons.registry import IconRegistry
         from redspec.models.diagram import DiagramSpec
 
-        try:
-            raw = pyyaml.safe_load(body.yaml_content)
-            if not isinstance(raw, dict):
-                raise HTTPException(status_code=400, detail="YAML must be a mapping")
+        raw = _parse_yaml_content(body.yaml_content)
 
-            # Apply overrides
+        try:
             if "diagram" not in raw:
                 raw["diagram"] = {}
             if body.theme:
@@ -114,7 +199,6 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_output = str(Path(tmpdir) / f"diagram.{out_format}")
 
-            # Write temp YAML for organize_output
             tmp_yaml = Path(tmpdir) / "spec.yaml"
             tmp_yaml.write_text(body.yaml_content, encoding="utf-8")
 
@@ -149,16 +233,102 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
             headers={"X-Diagram-Slug": slug},
         )
 
+    # ---- Export (text-based formats) ----
+
+    @app.post("/api/export")
+    async def export_diagram(body: ExportRequest) -> JSONResponse:
+        from redspec.models.diagram import DiagramSpec
+
+        raw = _parse_yaml_content(body.yaml_content)
+
+        try:
+            spec = DiagramSpec.model_validate(raw)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        fmt = body.format.lower()
+        if fmt == "mermaid":
+            from redspec.exporters.mermaid import export_mermaid
+            text = export_mermaid(spec)
+        elif fmt == "plantuml":
+            from redspec.exporters.plantuml import export_plantuml
+            text = export_plantuml(spec)
+        elif fmt == "drawio":
+            from redspec.exporters.drawio import export_drawio
+            text = export_drawio(spec)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown export format: {fmt!r}")
+
+        return JSONResponse({"format": fmt, "content": text})
+
+    # ---- Diff ----
+
+    @app.post("/api/diff")
+    async def diff_diagrams(body: DiffRequest) -> JSONResponse:
+        from redspec.diff import diff_specs
+        from redspec.models.diagram import DiagramSpec
+
+        old_raw = _parse_yaml_content(body.old_yaml)
+        new_raw = _parse_yaml_content(body.new_yaml)
+
+        try:
+            old_spec = DiagramSpec.model_validate(old_raw)
+            new_spec = DiagramSpec.model_validate(new_raw)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        result = diff_specs(old_spec, new_spec)
+
+        response: dict[str, Any] = {
+            "is_empty": result.is_empty,
+            "added_resources": result.added_resources,
+            "removed_resources": result.removed_resources,
+            "added_connections": result.added_connections,
+            "removed_connections": result.removed_connections,
+            "changed_connections": result.changed_connections,
+        }
+
+        # Render diff SVG if requested and there are differences
+        if not result.is_empty and body.format in ("svg", "png"):
+            from redspec.generator.diff_renderer import render_diff
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                out_path = str(Path(tmpdir) / f"diff.{body.format}")
+                rendered = render_diff(old_spec, new_spec, out_path, out_format=body.format)
+                if rendered.exists():
+                    response["diff_diagram"] = rendered.read_text(encoding="utf-8") if body.format == "svg" else None
+
+        return JSONResponse(response)
+
+    # ---- Gallery CRUD ----
+
     @app.get("/api/gallery")
     async def gallery() -> list[dict[str, Any]]:
         from redspec.generator.output_organizer import list_gallery
 
         return list_gallery(output_dir)
 
+    @app.get("/api/gallery/{slug}/spec")
+    async def gallery_spec(slug: str) -> JSONResponse:
+        """Return the parsed spec JSON for a gallery entry."""
+        from redspec.models.diagram import DiagramSpec
+
+        slug_dir = _resolve_slug_dir(output_dir, slug)
+        spec_file = slug_dir / "spec.yaml"
+        if not spec_file.exists():
+            raise HTTPException(status_code=404, detail="spec.yaml not found")
+
+        raw = _parse_yaml_content(spec_file.read_text(encoding="utf-8"))
+        try:
+            spec = DiagramSpec.model_validate(raw)
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        return JSONResponse(spec.model_dump(by_alias=True, exclude_none=True))
+
     @app.get("/api/gallery/{slug}/{file}")
     async def gallery_file(slug: str, file: str) -> FileResponse:
         file_path = (output_dir / slug / file).resolve()
-        # Path traversal protection
         try:
             file_path.relative_to(output_dir.resolve())
         except ValueError:
@@ -168,6 +338,53 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="File not found")
 
         return FileResponse(path=str(file_path))
+
+    @app.delete("/api/gallery/{slug}")
+    async def gallery_delete(slug: str) -> JSONResponse:
+        """Delete a gallery entry by slug."""
+        slug_dir = _resolve_slug_dir(output_dir, slug)
+        shutil.rmtree(slug_dir)
+        return JSONResponse({"deleted": slug})
+
+    @app.patch("/api/gallery/{slug}")
+    async def gallery_update(slug: str, body: GalleryUpdateRequest) -> JSONResponse:
+        """Update a gallery entry's spec.yaml or metadata name."""
+        slug_dir = _resolve_slug_dir(output_dir, slug)
+
+        if body.yaml_content is not None:
+            spec_file = slug_dir / "spec.yaml"
+            spec_file.write_text(body.yaml_content, encoding="utf-8")
+
+        if body.name is not None:
+            meta_file = slug_dir / "metadata.json"
+            if meta_file.exists():
+                meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            else:
+                meta = {}
+            meta["name"] = body.name
+            meta_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+        return JSONResponse({"updated": slug})
+
+    # ---- Custom themes ----
+
+    @app.post("/api/themes/custom")
+    async def register_theme(body: CustomThemeRequest) -> JSONResponse:
+        from redspec.generator.themes import register_custom_theme
+
+        try:
+            register_custom_theme(body.name, {
+                "graph_attr": body.graph_attr,
+                "node_attr": body.node_attr,
+                "edge_attr": body.edge_attr,
+                "cluster_base": body.cluster_base,
+            })
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        return JSONResponse({"registered": body.name})
+
+    # ---- Resources ----
 
     @app.get("/api/resources")
     async def list_resources() -> list[str]:

@@ -13,6 +13,7 @@
     <!-- CodeMirror 5 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
 
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -24,8 +25,9 @@
     <!-- Top Bar -->
     <header class="topbar">
         <div class="topbar-brand">
-            <span class="brand-icon">⬢</span>
+            <span class="brand-icon">&#x2B22;</span>
             Redspec <span class="brand-version">v0.1</span>
+            <span id="ws-status" class="ws-dot" title="Live preview disconnected"></span>
         </div>
         <div class="topbar-controls">
             <div class="control-group">
@@ -56,7 +58,7 @@
                     </select>
                 </label>
             </div>
-            
+
             <div class="control-group dpi-group">
                 <label>
                     <span class="label-text">DPI <span id="dpi-label">150</span></span>
@@ -82,7 +84,6 @@
                         <span class="toggle-slider"></span>
                     </div>
                 </label>
-                <!-- Dark Mode is default/forced in this theme, but keeping toggle for logic compatibility if needed, or we can repurpose/hide it. Let's keep it but styled stealthy. -->
                 <label class="toggle-label" title="Toggle Dark Mode">
                     <span class="label-text">DARK</span>
                     <div class="toggle-switch">
@@ -99,6 +100,16 @@
                 <button id="btn-generate" class="btn btn-primary">
                     <span class="btn-text">EXECUTE</span>
                 </button>
+                <div class="dropdown">
+                    <button id="btn-export" class="btn btn-secondary">
+                        <span class="btn-text">EXPORT &#9662;</span>
+                    </button>
+                    <div class="dropdown-menu" id="export-menu">
+                        <button data-format="mermaid">Mermaid</button>
+                        <button data-format="plantuml">PlantUML</button>
+                        <button data-format="drawio">Draw.io</button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -114,18 +125,23 @@
                 <textarea id="yaml-editor"></textarea>
             </div>
         </section>
-        
+
         <section class="preview-panel hud-panel">
             <div class="panel-header">
                 <span class="panel-title">// VISUAL_OUTPUT</span>
                 <div class="actions">
+                    <button id="btn-zoom-in" class="btn btn-icon" title="Zoom in">+</button>
+                    <button id="btn-zoom-reset" class="btn btn-icon" title="Reset zoom">1:1</button>
+                    <button id="btn-zoom-out" class="btn btn-icon" title="Zoom out">&minus;</button>
+                    <button id="btn-diff" class="btn btn-small" title="Compare two specs">DIFF</button>
                     <button id="btn-download" class="btn btn-small" disabled>DOWNLOAD</button>
                 </div>
             </div>
             <div id="preview-area">
                 <div class="empty-state">
-                    <div class="empty-icon">⌘</div>
+                    <div class="empty-icon">&#8984;</div>
                     <p>AWAITING INPUT_</p>
+                    <p class="empty-hint">Write YAML or pick a template, then press EXECUTE</p>
                 </div>
             </div>
             <div id="status-bar" class="status-bar">
@@ -144,9 +160,72 @@
         <div id="gallery-grid" class="gallery-grid"></div>
     </section>
 
+    <!-- Diff Modal -->
+    <div id="diff-modal" class="modal-overlay" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="panel-title">// DIFF_COMPARE</span>
+                <button id="diff-close" class="btn btn-icon">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="diff-inputs">
+                    <div class="diff-col">
+                        <label class="label-text">OLD SPEC (YAML)</label>
+                        <textarea id="diff-old" class="diff-textarea" placeholder="Paste old YAML here..."></textarea>
+                    </div>
+                    <div class="diff-col">
+                        <label class="label-text">NEW SPEC (YAML)</label>
+                        <textarea id="diff-new" class="diff-textarea" placeholder="Paste new YAML here..."></textarea>
+                    </div>
+                </div>
+                <div class="diff-actions">
+                    <button id="btn-diff-run" class="btn btn-primary">COMPARE</button>
+                </div>
+                <div id="diff-result" class="diff-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Builder Modal -->
+    <div id="theme-modal" class="modal-overlay" hidden>
+        <div class="modal-card modal-wide">
+            <div class="modal-header">
+                <span class="panel-title">// THEME_BUILDER</span>
+                <button id="theme-close" class="btn btn-icon">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="theme-form">
+                    <label class="label-text">THEME NAME</label>
+                    <input type="text" id="theme-name" class="cyber-input" placeholder="my-custom-theme">
+                    <div class="theme-sections">
+                        <div>
+                            <label class="label-text">GRAPH_ATTR</label>
+                            <textarea id="theme-graph" class="theme-textarea" placeholder='{"bgcolor":"#111","fontsize":"16"}'></textarea>
+                        </div>
+                        <div>
+                            <label class="label-text">NODE_ATTR</label>
+                            <textarea id="theme-node" class="theme-textarea" placeholder='{"fontsize":"13"}'></textarea>
+                        </div>
+                        <div>
+                            <label class="label-text">EDGE_ATTR</label>
+                            <textarea id="theme-edge" class="theme-textarea" placeholder='{"color":"#888"}'></textarea>
+                        </div>
+                        <div>
+                            <label class="label-text">CLUSTER_BASE</label>
+                            <textarea id="theme-cluster" class="theme-textarea" placeholder='{"style":"rounded"}'></textarea>
+                        </div>
+                    </div>
+                    <button id="btn-theme-register" class="btn btn-primary">REGISTER THEME</button>
+                </div>
+                <div id="theme-result" class="theme-result"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- CodeMirror 5 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
 
     <script src="/static/app.js"></script>
 </body>
