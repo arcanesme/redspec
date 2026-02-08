@@ -1,5 +1,6 @@
 """Tests for Azure Resource Graph import (D2)."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 from redspec.importers.azure_graph import _map_arm_type, import_from_resource_graph
@@ -26,6 +27,20 @@ class TestArmTypeMapping:
         assert _map_arm_type("MICROSOFT.COMPUTE/VIRTUALMACHINES") == "azure/vm"
 
 
+def _make_azure_mocks():
+    """Create mock azure modules so local imports resolve."""
+    mock_identity = MagicMock()
+    mock_graph = MagicMock()
+    mock_graph_models = MagicMock()
+    return {
+        "azure": MagicMock(),
+        "azure.identity": mock_identity,
+        "azure.mgmt": MagicMock(),
+        "azure.mgmt.resourcegraph": mock_graph,
+        "azure.mgmt.resourcegraph.models": mock_graph_models,
+    }
+
+
 class TestImportFromResourceGraph:
     def test_groups_by_resource_group(self):
         mock_response = MagicMock()
@@ -35,21 +50,19 @@ class TestImportFromResourceGraph:
             {"name": "vm2", "type": "Microsoft.Compute/virtualMachines", "resourceGroup": "rg-dev", "location": "westus", "properties": {}},
         ]
 
-        with patch("redspec.importers.azure_graph.DefaultAzureCredential"), \
-             patch("redspec.importers.azure_graph.ResourceGraphClient") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client.resources.return_value = mock_response
-            mock_client_cls.return_value = mock_client
+        azure_mocks = _make_azure_mocks()
+        mock_client = MagicMock()
+        mock_client.resources.return_value = mock_response
+        azure_mocks["azure.mgmt.resourcegraph"].ResourceGraphClient.return_value = mock_client
 
+        with patch.dict(sys.modules, azure_mocks):
             spec = import_from_resource_graph("sub-123")
 
-        # Should have 2 resource groups
         assert len(spec.resources) == 2
         rg_names = {r.name for r in spec.resources}
         assert "rg-prod" in rg_names
         assert "rg-dev" in rg_names
 
-        # rg-prod should have 2 children
         rg_prod = next(r for r in spec.resources if r.name == "rg-prod")
         assert len(rg_prod.children) == 2
 
@@ -59,12 +72,12 @@ class TestImportFromResourceGraph:
             {"name": "vm1", "type": "Microsoft.Compute/virtualMachines", "resourceGroup": "rg", "location": "eastus", "properties": {}},
         ]
 
-        with patch("redspec.importers.azure_graph.DefaultAzureCredential"), \
-             patch("redspec.importers.azure_graph.ResourceGraphClient") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client.resources.return_value = mock_response
-            mock_client_cls.return_value = mock_client
+        azure_mocks = _make_azure_mocks()
+        mock_client = MagicMock()
+        mock_client.resources.return_value = mock_response
+        azure_mocks["azure.mgmt.resourcegraph"].ResourceGraphClient.return_value = mock_client
 
+        with patch.dict(sys.modules, azure_mocks):
             spec = import_from_resource_graph("sub-123")
 
         child = spec.resources[0].children[0]
