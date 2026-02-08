@@ -20,5 +20,12 @@ class ConnectionDef(BaseModel):
     to: str
     label: str | None = None
     style: str | None = None
+    color: str | None = None
+    penwidth: str | None = None
+    arrowhead: str | None = None
+    arrowtail: str | None = None
+    direction: str | None = None
+    minlen: str | None = None
+    constraint: str | None = None
 
     model_config = {"populate_by_name": True}

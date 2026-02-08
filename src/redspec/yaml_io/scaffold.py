@@ -6,6 +6,8 @@ _TEMPLATES: dict[str, str] = {
 diagram:
   name: My Azure Architecture
   layout: auto
+  direction: TB
+  theme: default
 
 resources:
   - type: azure/resource-group
@@ -25,11 +27,14 @@ connections:
   - from: app-web
     to: sql-main
     label: reads/writes
+    color: "#0078D4"
 """,
     "m365": """\
 diagram:
   name: Microsoft 365 Architecture
   layout: auto
+  direction: TB
+  theme: default
 
 resources:
   - type: m365/chat
@@ -48,6 +53,8 @@ connections:
 diagram:
   name: Dynamics 365 Architecture
   layout: auto
+  direction: TB
+  theme: default
 
 resources:
   - type: dynamics365/sales
@@ -66,6 +73,8 @@ connections:
 diagram:
   name: Power Platform Architecture
   layout: auto
+  direction: TB
+  theme: default
 
 resources:
   - type: power-platform/powerapps
@@ -87,6 +96,8 @@ connections:
 diagram:
   name: Enterprise Integration
   layout: auto
+  direction: TB
+  theme: default
 
 resources:
   - type: azure/resource-group

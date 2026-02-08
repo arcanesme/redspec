@@ -14,7 +14,7 @@ Generate an Azure architecture diagram from a natural-language description.
 1. Parse the user's architecture description from `$ARGUMENTS`
 2. Write a valid redspec YAML spec based on the description
 3. Save the YAML file to disk (use a descriptive filename based on the description, e.g., `three-tier-web-app.yaml`)
-4. Run `redspec generate <yaml_file>` to produce the `.drawio` file
+4. Run `redspec generate <yaml_file>` to produce the diagram (optionally with `--direction LR --dpi 200` for wide architectures or presentations)
 5. Report both output file paths to the user
 
 ## YAML Schema Reference
@@ -25,6 +25,9 @@ The YAML file has three top-level sections:
 diagram:
   name: "<Diagram Title>"
   layout: auto
+  direction: TB       # TB, LR, BT, RL
+  theme: default      # default, light, dark
+  dpi: 150            # 72-600
 
 resources:
   - type: azure/<resource-type>
@@ -37,7 +40,11 @@ connections:
   - from: <source-name>
     to: <target-name>
     label: <optional-label>
-    style: dashed      # optional
+    style: dashed           # optional
+    color: "#0078D4"        # optional hex color
+    penwidth: "2.0"         # optional thickness
+    arrowhead: vee          # optional: vee, dot, diamond, normal, none
+    direction: both         # optional: forward, back, both, none
 ```
 
 ## Supported Azure Resource Types
@@ -71,6 +78,13 @@ connections:
 
 You can also use any full Azure icon name (e.g., `azure/application-gateways`).
 
+## Edge Styling
+
+- Use `color` on key edges: blue `#0078D4` for primary, green `#107C10` for AI/ML, red `#D83B01` for security, purple `#5C2D91` for identity
+- Use `arrowhead: vee` for modern look
+- Use `direction: both` for bidirectional flows (sync, replication)
+- Use `penwidth: "2.0"` to emphasize critical paths
+
 ## Rules
 
 - Every resource `name` must be unique across the entire spec (including nested children)
@@ -83,7 +97,12 @@ You can also use any full Azure icon name (e.g., `azure/application-gateways`).
 ## CLI Command
 
 ```bash
-redspec generate <yaml_file> -o <output.drawio>
-```
+redspec generate <yaml_file>
+# Output: organized folder in ./output/<slug>/
 
-If `-o` is omitted, output defaults to the same filename with `.drawio` extension.
+redspec generate <yaml_file> -o <output.png>
+# Output: direct file (backward compatible)
+
+redspec generate <yaml_file> -d ./my-output/ --direction LR --dpi 200
+# Output: organized folder with overrides
+```

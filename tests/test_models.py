@@ -76,16 +76,96 @@ class TestConnectionDef:
         assert c.label is None
         assert c.style is None
 
+    def test_color_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "color": "#0078D4"})
+        assert c.color == "#0078D4"
+
+    def test_penwidth_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "penwidth": "2.5"})
+        assert c.penwidth == "2.5"
+
+    def test_color_and_penwidth_default_none(self):
+        c = ConnectionDef(**{"from": "a", "to": "b"})
+        assert c.color is None
+        assert c.penwidth is None
+
+    def test_arrowhead_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "arrowhead": "vee"})
+        assert c.arrowhead == "vee"
+
+    def test_arrowtail_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "arrowtail": "diamond"})
+        assert c.arrowtail == "diamond"
+
+    def test_direction_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "direction": "both"})
+        assert c.direction == "both"
+
+    def test_minlen_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "minlen": "2"})
+        assert c.minlen == "2"
+
+    def test_constraint_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "constraint": "false"})
+        assert c.constraint == "false"
+
+    def test_new_fields_default_none(self):
+        c = ConnectionDef(**{"from": "a", "to": "b"})
+        assert c.arrowhead is None
+        assert c.arrowtail is None
+        assert c.direction is None
+        assert c.minlen is None
+        assert c.constraint is None
+
 
 class TestDiagramMeta:
     def test_defaults(self):
         m = DiagramMeta()
         assert m.name == "Azure Architecture"
         assert m.layout == "auto"
+        assert m.direction == "TB"
+        assert m.theme == "default"
+        assert m.dpi == 150
 
     def test_custom_values(self):
         m = DiagramMeta(name="My Diagram", layout="manual")
         assert m.name == "My Diagram"
+
+    def test_direction_uppercased(self):
+        m = DiagramMeta(direction="lr")
+        assert m.direction == "LR"
+
+    def test_direction_valid_values(self):
+        for d in ("TB", "LR", "BT", "RL"):
+            m = DiagramMeta(direction=d)
+            assert m.direction == d
+
+    def test_direction_invalid_raises(self):
+        with pytest.raises(ValidationError, match="direction"):
+            DiagramMeta(direction="XX")
+
+    def test_theme_valid_values(self):
+        for t in ("default", "light", "dark"):
+            m = DiagramMeta(theme=t)
+            assert m.theme == t
+
+    def test_theme_invalid_raises(self):
+        with pytest.raises(ValidationError, match="theme"):
+            DiagramMeta(theme="neon")
+
+    def test_dpi_valid_range(self):
+        m = DiagramMeta(dpi=72)
+        assert m.dpi == 72
+        m = DiagramMeta(dpi=600)
+        assert m.dpi == 600
+
+    def test_dpi_too_low_raises(self):
+        with pytest.raises(ValidationError, match="dpi"):
+            DiagramMeta(dpi=50)
+
+    def test_dpi_too_high_raises(self):
+        with pytest.raises(ValidationError, match="dpi"):
+            DiagramMeta(dpi=700)
 
 
 class TestDiagramSpec:
@@ -122,3 +202,26 @@ class TestDiagramSpec:
         }
         spec = DiagramSpec.model_validate(data)
         assert len(spec.resources[0].children) == 1
+
+    def test_spec_with_direction_and_theme(self):
+        data = {
+            "diagram": {"name": "Test", "direction": "LR", "theme": "dark", "dpi": 300},
+        }
+        spec = DiagramSpec.model_validate(data)
+        assert spec.diagram.direction == "LR"
+        assert spec.diagram.theme == "dark"
+        assert spec.diagram.dpi == 300
+
+    def test_spec_with_edge_color(self):
+        data = {
+            "resources": [
+                {"type": "azure/vm", "name": "a"},
+                {"type": "azure/vm", "name": "b"},
+            ],
+            "connections": [
+                {"from": "a", "to": "b", "color": "#FF0000", "penwidth": "2.0"},
+            ],
+        }
+        spec = DiagramSpec.model_validate(data)
+        assert spec.connections[0].color == "#FF0000"
+        assert spec.connections[0].penwidth == "2.0"

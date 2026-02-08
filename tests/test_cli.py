@@ -54,6 +54,15 @@ class TestInit:
         assert "azure/" in content
         assert "dynamics365/" in content
 
+    def test_init_template_has_direction_and_theme(self, runner, tmp_path):
+        output = tmp_path / "test.yaml"
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False):
+            result = runner.invoke(main, ["init", str(output)])
+        assert result.exit_code == 0
+        content = output.read_text()
+        assert "direction: TB" in content
+        assert "theme: default" in content
+
 
 class TestValidate:
     def test_validate_valid_yaml(self, runner, minimal_yaml_path):
@@ -77,14 +86,10 @@ class TestValidate:
 
 
 class TestGenerate:
-    def test_generate_creates_drawio(self, runner, minimal_yaml_path, tmp_path, mock_icon_dir):
-        output = tmp_path / "output.drawio"
-
-        mock_registry = MagicMock()
-        mock_registry.resolve.return_value = None  # Fallback icons (yellow boxes)
+    def test_generate_creates_png(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
 
         with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
-             patch("redspec.icons.registry.IconRegistry", return_value=mock_registry), \
              patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
             mock_pack = MagicMock()
             mock_pack.downloaded_marker.exists.return_value = True
@@ -95,6 +100,129 @@ class TestGenerate:
 
         assert result.exit_code == 0, result.output
         assert output.exists()
+
+    def test_generate_with_format_svg(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.svg"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--format", "svg"]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert output.exists()
+
+    def test_generate_with_direction(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--direction", "LR"]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert output.exists()
+
+    def test_generate_with_dpi(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--dpi", "300"]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert output.exists()
+
+    def test_generate_direction_case_insensitive(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--direction", "lr"]
+            )
+
+        assert result.exit_code == 0, result.output
+
+    def test_generate_dpi_out_of_range(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False):
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--dpi", "10"]
+            )
+
+        assert result.exit_code != 0
+
+    def test_generate_default_organized_output(self, runner, minimal_yaml_path, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path)]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert "Diagram written to" in result.output
+
+    def test_generate_custom_output_dir(self, runner, minimal_yaml_path, tmp_path):
+        output_dir = tmp_path / "custom_out"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-d", str(output_dir)]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert "Diagram written to" in result.output
+
+    def test_generate_output_and_output_dir_conflict(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.png"
+        output_dir = tmp_path / "dir"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "-d", str(output_dir)]
+            )
+
+        assert result.exit_code != 0
+        assert "Cannot use both" in result.output
+
+
+class TestServe:
+    def test_serve_help(self, runner):
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False):
+            result = runner.invoke(main, ["serve", "--help"])
+        assert result.exit_code == 0
+        assert "port" in result.output
 
 
 class TestListResources:

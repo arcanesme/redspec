@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redspec - Architecture Diagram Generator</title>
+
+    <!-- CodeMirror 5 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/dracula.min.css">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="topbar-brand">Redspec</div>
+        <div class="topbar-controls">
+            <label>
+                Template
+                <select id="template-picker">
+                    <option value="">-- select --</option>
+                </select>
+            </label>
+            <label>
+                Theme
+                <select id="theme-picker">
+                    <option value="default">default</option>
+                    <option value="light">light</option>
+                    <option value="dark">dark</option>
+                </select>
+            </label>
+            <label>
+                Direction
+                <select id="direction-picker">
+                    <option value="TB">TB</option>
+                    <option value="LR">LR</option>
+                    <option value="BT">BT</option>
+                    <option value="RL">RL</option>
+                </select>
+            </label>
+            <label>
+                DPI <span id="dpi-label">150</span>
+                <input type="range" id="dpi-slider" min="72" max="600" value="150" step="1">
+            </label>
+            <label>
+                Format
+                <select id="format-picker">
+                    <option value="png">PNG</option>
+                    <option value="svg">SVG</option>
+                </select>
+            </label>
+            <button id="btn-validate" class="btn btn-secondary">Validate</button>
+            <button id="btn-generate" class="btn btn-primary">Generate</button>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <main class="workspace">
+        <section class="editor-panel">
+            <div class="panel-header">YAML Editor</div>
+            <textarea id="yaml-editor"></textarea>
+        </section>
+        <section class="preview-panel">
+            <div class="panel-header">
+                Preview
+                <button id="btn-download" class="btn btn-small" disabled>Download</button>
+            </div>
+            <div id="preview-area">
+                <p class="placeholder-text">Click "Generate" to see your diagram</p>
+            </div>
+            <div id="status-bar" class="status-bar"></div>
+        </section>
+    </main>
+
+    <!-- Gallery -->
+    <section class="gallery-section">
+        <h2>Gallery</h2>
+        <div id="gallery-grid" class="gallery-grid"></div>
+    </section>
+
+    <!-- CodeMirror 5 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/yaml/yaml.min.js"></script>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -16,3 +16,5 @@ htmlcov/
 *.drawio
 !tests/fixtures/*.drawio
 .DS_Store
+output/
+test.png

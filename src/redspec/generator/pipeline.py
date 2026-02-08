@@ -1,36 +1,17 @@
-"""Main generation pipeline: YAML spec -> .drawio file."""
+"""Main generation pipeline: YAML spec -> diagram image."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from drawpyo import File, Page
-from drawpyo.diagram import Object
-
-from redspec.config import CONTAINER_TYPES
 from redspec.exceptions import DuplicateResourceNameError
-from redspec.generator.containers import create_container
-from redspec.generator.edges import create_edges
-from redspec.generator.layout import layout_resources
-from redspec.generator.nodes import create_node
+from redspec.generator.renderer import render
 
 if TYPE_CHECKING:
     from redspec.icons.registry import IconRegistry
     from redspec.models import DiagramSpec
     from redspec.models.resource import ResourceDef
-
-
-def _is_container_type(resource_type: str) -> bool:
-    """Check if a resource type is a container, ignoring namespace prefix."""
-    key = resource_type.lower()
-    if key in CONTAINER_TYPES:
-        return True
-    # Strip namespace and check suffix only
-    if "/" in key:
-        suffix = key.split("/", 1)[1]
-        return any(ct.endswith("/" + suffix) for ct in CONTAINER_TYPES)
-    return False
 
 
 def _collect_names(resources: list[ResourceDef]) -> list[str]:
@@ -51,77 +32,29 @@ def _validate_unique_names(resources: list[ResourceDef]) -> None:
         seen.add(name)
 
 
-def _process_resource(
-    resource: ResourceDef,
-    page: Page,
-    icon_registry: IconRegistry,
-    embedder_fn: Callable[[Path], str],
-    name_to_object: dict[str, Object],
-    name_to_container: dict[str, Object],
-    parent: Object | None = None,
-) -> None:
-    """Recursively create drawpyo objects for a resource tree."""
-    if _is_container_type(resource.type):
-        container = create_container(resource, page, parent=parent)
-        name_to_object[resource.name] = container
-        name_to_container[resource.name] = container
-
-        for child in resource.children:
-            _process_resource(
-                child,
-                page,
-                icon_registry,
-                embedder_fn,
-                name_to_object,
-                name_to_container,
-                parent=container,
-            )
-    else:
-        node = create_node(
-            resource, page, icon_registry, embedder_fn, parent=parent
-        )
-        name_to_object[resource.name] = node
-
-
 def generate(
     spec: DiagramSpec,
     output_path: str,
-    icon_registry: IconRegistry,
-    embedder_fn: Callable[[Path], str],
+    icon_registry: IconRegistry | None = None,
+    embedder_fn: Callable | None = None,
     strict: bool = False,
+    out_format: str = "png",
+    direction_override: str | None = None,
+    dpi_override: int | None = None,
 ) -> Path:
-    """Generate a .drawio file from a DiagramSpec.
+    """Generate a diagram image from a DiagramSpec.
 
-    Returns the Path to the written file.
+    Returns the Path to the written file.  The *embedder_fn* parameter is
+    accepted for backward compatibility but ignored (Diagrams uses its own
+    icon rendering).
     """
-    # Validate unique names
     _validate_unique_names(spec.resources)
-
-    out = Path(output_path)
-    file = File(file_name=out.name, file_path=str(out.parent))
-    page = Page(file=file, name=spec.diagram.name)
-
-    name_to_object: dict[str, Object] = {}
-    name_to_container: dict[str, Object] = {}
-
-    # Build resource tree
-    for resource in spec.resources:
-        _process_resource(
-            resource,
-            page,
-            icon_registry,
-            embedder_fn,
-            name_to_object,
-            name_to_container,
-        )
-
-    # Create edges
-    create_edges(spec.connections, name_to_object, page)
-
-    # Layout
-    layout_resources(spec.resources, name_to_object, name_to_container)
-
-    # Write
-    file.write(overwrite=True)
-
-    return out
+    return render(
+        spec,
+        output_path,
+        icon_registry=icon_registry,
+        strict=strict,
+        out_format=out_format,
+        direction_override=direction_override,
+        dpi_override=dpi_override,
+    )
