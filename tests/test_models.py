@@ -145,7 +145,7 @@ class TestDiagramMeta:
             DiagramMeta(direction="XX")
 
     def test_theme_valid_values(self):
-        for t in ("default", "light", "dark"):
+        for t in ("default", "light", "dark", "presentation"):
             m = DiagramMeta(theme=t)
             assert m.theme == t
 

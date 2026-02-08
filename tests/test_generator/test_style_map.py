@@ -82,10 +82,11 @@ class TestGetClusterStyleWithTheme:
 
     def test_dark_theme_cluster(self):
         theme = get_theme("dark")
-        style = get_cluster_style("azure/subnet", theme=theme)
+        style = get_cluster_style("azure/subnet", theme=theme, theme_name="dark")
         assert style["fontcolor"] == "#CDD6F4"
-        assert style["penwidth"] == "2.0"
-        assert style["bgcolor"] == "#E1D5E780"
+        assert style["penwidth"] == "2.5"
+        assert style["bgcolor"] == "#0D2137"
+        assert style["pencolor"] == "#5C6BC0"
 
     def test_without_theme_no_extra_keys(self):
         style = get_cluster_style("azure/vnet")
@@ -93,3 +94,36 @@ class TestGetClusterStyleWithTheme:
         assert "labeljust" not in style
         assert "labelloc" not in style
         assert "margin" not in style
+
+
+class TestDarkClusterStyle:
+    def test_dark_vnet(self):
+        theme = get_theme("dark")
+        style = get_cluster_style("azure/vnet", theme=theme, theme_name="dark")
+        assert style["bgcolor"] == "#0A2647"
+        assert style["pencolor"] == "#00B4D8"
+
+    def test_presentation_resource_group(self):
+        theme = get_theme("presentation")
+        style = get_cluster_style("azure/resource-group", theme=theme, theme_name="presentation")
+        assert style["bgcolor"] == "#0D1B2A"
+        assert style["pencolor"] == "#0078D4"
+        assert style["style"] == "dashed,rounded,filled"
+
+    def test_presentation_subscription(self):
+        theme = get_theme("presentation")
+        style = get_cluster_style("azure/subscription", theme=theme, theme_name="presentation")
+        assert style["bgcolor"] == "#1A1500"
+        assert style["pencolor"] == "#FFB300"
+
+    def test_dark_unknown_returns_dark_default(self):
+        theme = get_theme("dark")
+        style = get_cluster_style("azure/custom-group", theme=theme, theme_name="dark")
+        assert style["bgcolor"] == "#0D1B2A"
+        assert style["pencolor"] == "#0078D4"
+
+    def test_light_theme_still_uses_light_styles(self):
+        theme = get_theme("light")
+        style = get_cluster_style("azure/vnet", theme=theme, theme_name="light")
+        assert style["bgcolor"] == "#DAE8FC80"
+        assert style["pencolor"] == "#6C8EBF"

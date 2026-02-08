@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from diagrams import Cluster, Diagram, Edge
 
-from redspec.exceptions import ConnectionTargetNotFoundError
+from redspec.exceptions import ConnectionTargetNotFoundError, IconNotFoundError
 from redspec.generator.node_mapper import resolve_node_class
 from redspec.generator.style_map import get_cluster_style, is_container_type
 from redspec.generator.themes import get_theme
@@ -25,12 +25,14 @@ if TYPE_CHECKING:
 def _create_node(
     resource: ResourceDef,
     icon_registry: IconRegistry | None,
+    strict: bool = False,
 ) -> Node:
     """Create a Diagrams node for a leaf resource.
 
     Uses the built-in Azure node class if available, otherwise falls back
     to ``diagrams.custom.Custom`` with an icon from the registry, or a
-    generic node.
+    generic node.  When *strict* is ``True``, raises ``IconNotFoundError``
+    instead of falling back to the generic node.
     """
     node_cls = resolve_node_class(resource.type)
     if node_cls is not None:
@@ -44,6 +46,9 @@ def _create_node(
 
             return Custom(resource.name, str(icon_path))
 
+    if strict:
+        raise IconNotFoundError(resource.type)
+
     # Fallback: use a generic resource node
     from diagrams.azure.general import Resource
 
@@ -55,15 +60,20 @@ def _process_resource(
     icon_registry: IconRegistry | None,
     name_to_node: dict[str, Node],
     theme: dict[str, dict[str, Any]] | None = None,
+    theme_name: str = "default",
+    strict: bool = False,
 ) -> None:
     """Recursively create Diagrams nodes/clusters for a resource tree."""
     if is_container_type(resource.type):
-        style = get_cluster_style(resource.type, theme=theme)
+        style = get_cluster_style(resource.type, theme=theme, theme_name=theme_name)
         with Cluster(resource.name, graph_attr=style):
             for child in resource.children:
-                _process_resource(child, icon_registry, name_to_node, theme=theme)
+                _process_resource(
+                    child, icon_registry, name_to_node,
+                    theme=theme, theme_name=theme_name, strict=strict,
+                )
     else:
-        node = _create_node(resource, icon_registry)
+        node = _create_node(resource, icon_registry, strict=strict)
         name_to_node[resource.name] = node
 
 
@@ -139,10 +149,19 @@ def render(
         edge_attr=edge_attr,
     ):
         for resource in spec.resources:
-            _process_resource(resource, icon_registry, name_to_node, theme=theme)
+            _process_resource(
+                resource, icon_registry, name_to_node,
+                theme=theme, theme_name=spec.diagram.theme, strict=strict,
+            )
 
         _create_edges(spec.connections, name_to_node)
 
     # Diagrams creates <filename>.<format>
     generated = Path(f"{filename}.{out_format}")
+
+    if out_format == "svg" and spec.diagram.theme in ("dark", "presentation"):
+        from redspec.generator.svg_enhancer import enhance_svg
+
+        enhance_svg(generated, spec.diagram.theme)
+
     return generated

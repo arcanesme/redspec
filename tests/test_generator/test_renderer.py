@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from redspec.exceptions import ConnectionTargetNotFoundError
+from redspec.exceptions import ConnectionTargetNotFoundError, IconNotFoundError
 from redspec.generator.renderer import render
 from redspec.models.diagram import DiagramSpec
 
@@ -273,4 +273,68 @@ class TestRenderEdgeColor:
         })
         output = tmp_path / "thick.png"
         result = render(spec, str(output))
+        assert result.exists()
+
+
+class TestRenderPresentationTheme:
+    def test_presentation_theme(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Presentation Test", "theme": "presentation"},
+            "resources": [
+                {"type": "azure/vm", "name": "vm1"},
+            ],
+        })
+        output = tmp_path / "presentation.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+    def test_presentation_nested_containers(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Presentation Nested", "theme": "presentation"},
+            "resources": [
+                {
+                    "type": "azure/resource-group",
+                    "name": "rg-prod",
+                    "children": [
+                        {
+                            "type": "azure/vnet",
+                            "name": "vnet",
+                            "children": [
+                                {
+                                    "type": "azure/subnet",
+                                    "name": "subnet",
+                                    "children": [
+                                        {"type": "azure/app-service", "name": "app"},
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        })
+        output = tmp_path / "presentation_nested.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+
+class TestRenderStrictMode:
+    def test_strict_unknown_type_raises(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "resources": [
+                {"type": "totally-unknown", "name": "mystery"},
+            ],
+        })
+        output = tmp_path / "strict.png"
+        with pytest.raises(IconNotFoundError, match="totally-unknown"):
+            render(spec, str(output), strict=True)
+
+    def test_strict_off_unknown_type_fallback(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "resources": [
+                {"type": "totally-unknown", "name": "mystery"},
+            ],
+        })
+        output = tmp_path / "fallback.png"
+        result = render(spec, str(output), strict=False)
         assert result.exists()

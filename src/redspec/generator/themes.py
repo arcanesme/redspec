@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-VALID_THEMES: frozenset[str] = frozenset({"default", "light", "dark"})
+VALID_THEMES: frozenset[str] = frozenset({"default", "light", "dark", "presentation"})
 
 _SHARED_FONT = "Sans-Serif"
 
@@ -101,11 +101,11 @@ _THEMES: dict[str, dict[str, dict[str, Any]]] = {
             "fontcolor": "#CDD6F4",
         },
         "edge_attr": {
-            "color": "#6C7086",
+            "color": "#89B4FA",
             "penwidth": "1.5",
             "fontname": _SHARED_FONT,
             "fontsize": "11",
-            "fontcolor": "#6C7086",
+            "fontcolor": "#A6ADC8",
             "arrowsize": "0.8",
             "arrowhead": "vee",
         },
@@ -113,8 +113,48 @@ _THEMES: dict[str, dict[str, dict[str, Any]]] = {
             "fontname": _SHARED_FONT,
             "fontsize": "13",
             "fontcolor": "#CDD6F4",
-            "penwidth": "2.0",
+            "penwidth": "2.5",
+            "bgcolor": "#1A1A3E",
             "style": "rounded",
+            "labeljust": "l",
+            "labelloc": "t",
+            "margin": "16",
+        },
+    },
+    "presentation": {
+        "graph_attr": {
+            "bgcolor": "#0A0E1A",
+            "fontname": _SHARED_FONT,
+            "fontsize": "16",
+            "fontcolor": "#FFFFFF",
+            "pad": "1.0",
+            "nodesep": "0.80",
+            "ranksep": "1.0",
+            "splines": "ortho",
+            "dpi": "150",
+        },
+        "node_attr": {
+            "fontname": _SHARED_FONT,
+            "fontsize": "13",
+            "fontcolor": "#FFFFFF",
+        },
+        "edge_attr": {
+            "color": "#4FC3F7",
+            "penwidth": "2.0",
+            "fontname": _SHARED_FONT,
+            "fontsize": "11",
+            "fontcolor": "#B0BEC5",
+            "arrowsize": "0.8",
+            "arrowhead": "vee",
+        },
+        "cluster_base": {
+            "fontname": _SHARED_FONT,
+            "fontsize": "13",
+            "fontcolor": "#FFFFFF",
+            "pencolor": "#0078D4",
+            "penwidth": "3.0",
+            "bgcolor": "#0D1B2A",
+            "style": "rounded,filled",
             "labeljust": "l",
             "labelloc": "t",
             "margin": "16",

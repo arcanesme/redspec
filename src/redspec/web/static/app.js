@@ -61,15 +61,27 @@ document.addEventListener("DOMContentLoaded", () => {
     loadGallery();
 });
 
+function updatePreviewBackground() {
+    const previewArea = document.getElementById("preview-area");
+    const theme = document.getElementById("theme-picker").value;
+    if (theme === "dark" || theme === "presentation") {
+        previewArea.classList.add("dark-preview");
+    } else {
+        previewArea.classList.remove("dark-preview");
+    }
+}
+
 async function generateDiagram() {
     const previewArea = document.getElementById("preview-area");
     const statusBar = document.getElementById("status-bar");
     const downloadBtn = document.getElementById("btn-download");
+    const generateBtn = document.getElementById("btn-generate");
 
     previewArea.innerHTML = '<div class="spinner"></div>';
     statusBar.textContent = "Generating...";
     statusBar.className = "status-bar";
     downloadBtn.disabled = true;
+    generateBtn.classList.add("btn-loading");
 
     currentFormat = document.getElementById("format-picker").value;
 
@@ -96,11 +108,14 @@ async function generateDiagram() {
         currentBlob = await resp.blob();
         const url = URL.createObjectURL(currentBlob);
 
-        if (currentFormat === "svg") {
-            previewArea.innerHTML = `<img src="${url}" alt="Generated diagram">`;
-        } else {
-            previewArea.innerHTML = `<img src="${url}" alt="Generated diagram">`;
-        }
+        updatePreviewBackground();
+
+        const img = new Image();
+        img.alt = "Generated diagram";
+        img.onload = () => img.classList.add("fade-in");
+        img.src = url;
+        previewArea.innerHTML = "";
+        previewArea.appendChild(img);
 
         downloadBtn.disabled = false;
         statusBar.textContent = "Diagram generated successfully";
@@ -112,6 +127,8 @@ async function generateDiagram() {
         previewArea.innerHTML = `<p class="placeholder-text" style="color: var(--danger);">${err.message}</p>`;
         statusBar.textContent = `Error: ${err.message}`;
         statusBar.className = "status-bar error";
+    } finally {
+        generateBtn.classList.remove("btn-loading");
     }
 }
 
@@ -164,14 +181,15 @@ async function loadGallery() {
             return;
         }
 
-        grid.innerHTML = entries.map(entry => {
+        grid.innerHTML = entries.map((entry, index) => {
             const fmt = entry.format || "png";
             const thumbSrc = `/api/gallery/${entry.slug}/diagram.${fmt}`;
             const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "";
             const meta = [entry.theme, entry.direction, entry.dpi ? `${entry.dpi}dpi` : ""].filter(Boolean).join(" | ");
+            const delay = index * 0.08;
 
             return `
-                <div class="gallery-card">
+                <div class="gallery-card" style="animation-delay: ${delay}s">
                     <div class="gallery-card-thumb">
                         <img src="${thumbSrc}" alt="${entry.name}" loading="lazy">
                     </div>

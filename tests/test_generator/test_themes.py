@@ -46,7 +46,10 @@ class TestGetTheme:
         theme = get_theme("dark")
         assert theme["graph_attr"]["bgcolor"] == "#1E1E2E"
         assert theme["graph_attr"]["fontcolor"] == "#CDD6F4"
-        assert theme["edge_attr"]["color"] == "#6C7086"
+        assert theme["edge_attr"]["color"] == "#89B4FA"
+        assert theme["edge_attr"]["fontcolor"] == "#A6ADC8"
+        assert theme["cluster_base"]["penwidth"] == "2.5"
+        assert theme["cluster_base"]["bgcolor"] == "#1A1A3E"
 
     def test_light_theme_bgcolor(self):
         theme = get_theme("light")
@@ -57,4 +60,18 @@ class TestGetTheme:
             get_theme("neon")
 
     def test_valid_themes_frozenset(self):
-        assert VALID_THEMES == {"default", "light", "dark"}
+        assert VALID_THEMES == {"default", "light", "dark", "presentation"}
+
+    def test_presentation_theme_colors(self):
+        theme = get_theme("presentation")
+        assert theme["graph_attr"]["bgcolor"] == "#0A0E1A"
+        assert theme["graph_attr"]["fontcolor"] == "#FFFFFF"
+        assert theme["node_attr"]["fontcolor"] == "#FFFFFF"
+        assert theme["edge_attr"]["color"] == "#4FC3F7"
+        assert theme["edge_attr"]["fontcolor"] == "#B0BEC5"
+        assert theme["edge_attr"]["penwidth"] == "2.0"
+        assert theme["cluster_base"]["pencolor"] == "#0078D4"
+        assert theme["cluster_base"]["penwidth"] == "3.0"
+        assert theme["cluster_base"]["bgcolor"] == "#0D1B2A"
+        assert theme["cluster_base"]["fontcolor"] == "#FFFFFF"
+        assert theme["cluster_base"]["style"] == "rounded,filled"
