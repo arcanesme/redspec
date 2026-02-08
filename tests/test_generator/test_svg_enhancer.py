@@ -22,7 +22,8 @@ class TestEnhanceSvg:
         result = svg.read_text(encoding="utf-8")
         assert "<style" in result
         assert "drop-shadow" in result
-        assert "#0078D4" in result
+        assert "fill-opacity" in result
+        assert "0, 120, 212" in result  # Azure blue in rgba
 
     def test_injects_glow_for_dark(self, tmp_path):
         svg = tmp_path / "test.svg"
@@ -33,7 +34,16 @@ class TestEnhanceSvg:
         result = svg.read_text(encoding="utf-8")
         assert "<style" in result
         assert "drop-shadow" in result
-        assert "#89B4FA" in result
+        assert "137, 180, 250" in result  # Catppuccin blue in rgba
+
+    def test_presentation_forces_white_text(self, tmp_path):
+        svg = tmp_path / "test.svg"
+        svg.write_text(_MINIMAL_SVG, encoding="utf-8")
+
+        enhance_svg(svg, "presentation")
+
+        result = svg.read_text(encoding="utf-8")
+        assert "fill: #FFFFFF" in result
 
     def test_noop_for_default_theme(self, tmp_path):
         svg = tmp_path / "test.svg"

@@ -1,0 +1,560 @@
+{
+  "$defs": {
+    "AnnotationDef": {
+      "description": "A free-text annotation on the diagram.",
+      "properties": {
+        "text": {
+          "description": "Annotation text.",
+          "title": "Text",
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Position hint (e.g. 'top-right').",
+          "title": "Position"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "AnnotationDef",
+      "type": "object"
+    },
+    "ConnectionDef": {
+      "description": "A connection (edge) between two named resources.",
+      "properties": {
+        "from": {
+          "description": "Source resource name.",
+          "examples": [
+            "web-app"
+          ],
+          "title": "From",
+          "type": "string"
+        },
+        "to": {
+          "description": "Target resource name.",
+          "examples": [
+            "prod-db"
+          ],
+          "title": "To",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge label text.",
+          "title": "Label"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge style (e.g. 'dashed').",
+          "title": "Style"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge color (hex or named).",
+          "title": "Color"
+        },
+        "penwidth": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge pen width.",
+          "title": "Penwidth"
+        },
+        "arrowhead": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arrowhead shape (vee, diamond, etc.).",
+          "title": "Arrowhead"
+        },
+        "arrowtail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arrowtail shape.",
+          "title": "Arrowtail"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge direction (forward, back, both, none).",
+          "title": "Direction"
+        },
+        "minlen": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum edge length.",
+          "title": "Minlen"
+        },
+        "constraint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether edge affects ranking (true/false).",
+          "title": "Constraint"
+        },
+        "style_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reference to a named connection style preset.",
+          "title": "Style Ref"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "title": "ConnectionDef",
+      "type": "object"
+    },
+    "ConnectionStyleDef": {
+      "description": "Named reusable connection style preset.",
+      "properties": {
+        "name": {
+          "description": "Preset name for referencing.",
+          "examples": [
+            "data-flow",
+            "auth-flow"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge color.",
+          "title": "Color"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge style (e.g. 'dashed').",
+          "title": "Style"
+        },
+        "penwidth": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edge pen width.",
+          "title": "Penwidth"
+        },
+        "arrowhead": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arrowhead shape.",
+          "title": "Arrowhead"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ConnectionStyleDef",
+      "type": "object"
+    },
+    "DiagramMeta": {
+      "description": "Metadata about the diagram.",
+      "properties": {
+        "name": {
+          "default": "Azure Architecture",
+          "description": "Diagram display name.",
+          "examples": [
+            "My Azure Architecture"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "layout": {
+          "default": "auto",
+          "description": "Layout engine.",
+          "examples": [
+            "auto"
+          ],
+          "title": "Layout",
+          "type": "string"
+        },
+        "direction": {
+          "default": "TB",
+          "description": "Graph layout direction.",
+          "enum": [
+            "TB",
+            "LR",
+            "BT",
+            "RL"
+          ],
+          "examples": [
+            "TB",
+            "LR"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "theme": {
+          "default": "default",
+          "description": "Visual theme.",
+          "enum": [
+            "default",
+            "light",
+            "dark",
+            "presentation"
+          ],
+          "examples": [
+            "default",
+            "dark"
+          ],
+          "title": "Theme",
+          "type": "string"
+        },
+        "dpi": {
+          "default": 150,
+          "description": "Output DPI (72-600).",
+          "examples": [
+            150,
+            300
+          ],
+          "maximum": 600,
+          "minimum": 72,
+          "title": "Dpi",
+          "type": "integer"
+        },
+        "legend": {
+          "default": false,
+          "description": "Auto-generate icon legend.",
+          "title": "Legend",
+          "type": "boolean"
+        },
+        "annotations": {
+          "description": "Free-text annotations.",
+          "items": {
+            "$ref": "#/$defs/AnnotationDef"
+          },
+          "title": "Annotations",
+          "type": "array"
+        },
+        "animation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SVG animation type (flow, pulse, build).",
+          "title": "Animation"
+        }
+      },
+      "title": "DiagramMeta",
+      "type": "object"
+    },
+    "NodeStyle": {
+      "description": "Per-node visual overrides for custom styling.",
+      "properties": {
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fill color (CSS/hex).",
+          "title": "Color"
+        },
+        "shape": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Graphviz shape (box, ellipse, etc.).",
+          "title": "Shape"
+        },
+        "border": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Border style (e.g. 'dashed').",
+          "title": "Border"
+        },
+        "fontcolor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Label font color.",
+          "title": "Fontcolor"
+        }
+      },
+      "title": "NodeStyle",
+      "type": "object"
+    },
+    "ResourceDef": {
+      "description": "A single resource, optionally containing child resources.",
+      "properties": {
+        "type": {
+          "description": "Resource type identifier (e.g. 'azure/app-service').",
+          "examples": [
+            "azure/app-service",
+            "azure/vm",
+            "aws/ec2"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Unique display name for this resource.",
+          "examples": [
+            "web-app",
+            "prod-db"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "children": {
+          "description": "Nested child resources (rendered inside a cluster).",
+          "items": {
+            "$ref": "#/$defs/ResourceDef"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Arbitrary key-value metadata (SKU, cost, owner).",
+          "title": "Metadata",
+          "type": "object"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeStyle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-node visual overrides."
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "title": "ResourceDef",
+      "type": "object"
+    },
+    "ZoneDef": {
+      "description": "A swimlane / zone grouping resources.",
+      "properties": {
+        "name": {
+          "description": "Zone display name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "resources": {
+          "description": "Resource names belonging to this zone.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone style preset (dmz, private, public).",
+          "title": "Style"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ZoneDef",
+      "type": "object"
+    }
+  },
+  "description": "Schema for redspec YAML architecture diagram files.",
+  "properties": {
+    "diagram": {
+      "$ref": "#/$defs/DiagramMeta",
+      "description": "Diagram metadata (name, theme, direction, etc.)."
+    },
+    "resources": {
+      "description": "Top-level resources.",
+      "items": {
+        "$ref": "#/$defs/ResourceDef"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "connections": {
+      "description": "Connections between resources.",
+      "items": {
+        "$ref": "#/$defs/ConnectionDef"
+      },
+      "title": "Connections",
+      "type": "array"
+    },
+    "variables": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Variable definitions for ${key} interpolation.",
+      "title": "Variables",
+      "type": "object"
+    },
+    "connection_styles": {
+      "description": "Named reusable connection style presets.",
+      "items": {
+        "$ref": "#/$defs/ConnectionStyleDef"
+      },
+      "title": "Connection Styles",
+      "type": "array"
+    },
+    "zones": {
+      "description": "Swimlane / zone groupings.",
+      "items": {
+        "$ref": "#/$defs/ZoneDef"
+      },
+      "title": "Zones",
+      "type": "array"
+    }
+  },
+  "title": "Redspec Diagram Specification",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://redspec.dev/schemas/redspec-spec.json"
+}

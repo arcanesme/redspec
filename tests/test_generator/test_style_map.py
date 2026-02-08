@@ -85,7 +85,7 @@ class TestGetClusterStyleWithTheme:
         style = get_cluster_style("azure/subnet", theme=theme, theme_name="dark")
         assert style["fontcolor"] == "#CDD6F4"
         assert style["penwidth"] == "2.5"
-        assert style["bgcolor"] == "#0D2137"
+        assert style["bgcolor"] == "#0D213760"
         assert style["pencolor"] == "#5C6BC0"
 
     def test_without_theme_no_extra_keys(self):
@@ -100,26 +100,26 @@ class TestDarkClusterStyle:
     def test_dark_vnet(self):
         theme = get_theme("dark")
         style = get_cluster_style("azure/vnet", theme=theme, theme_name="dark")
-        assert style["bgcolor"] == "#0A2647"
+        assert style["bgcolor"] == "#0A264760"
         assert style["pencolor"] == "#00B4D8"
 
     def test_presentation_resource_group(self):
         theme = get_theme("presentation")
         style = get_cluster_style("azure/resource-group", theme=theme, theme_name="presentation")
-        assert style["bgcolor"] == "#0D1B2A"
+        assert style["bgcolor"] == "#0D1B2A70"
         assert style["pencolor"] == "#0078D4"
         assert style["style"] == "dashed,rounded,filled"
 
     def test_presentation_subscription(self):
         theme = get_theme("presentation")
         style = get_cluster_style("azure/subscription", theme=theme, theme_name="presentation")
-        assert style["bgcolor"] == "#1A1500"
+        assert style["bgcolor"] == "#1A150060"
         assert style["pencolor"] == "#FFB300"
 
     def test_dark_unknown_returns_dark_default(self):
         theme = get_theme("dark")
         style = get_cluster_style("azure/custom-group", theme=theme, theme_name="dark")
-        assert style["bgcolor"] == "#0D1B2A"
+        assert style["bgcolor"] == "#0D1B2A70"
         assert style["pencolor"] == "#0078D4"
 
     def test_light_theme_still_uses_light_styles(self):
@@ -127,3 +127,17 @@ class TestDarkClusterStyle:
         style = get_cluster_style("azure/vnet", theme=theme, theme_name="light")
         assert style["bgcolor"] == "#DAE8FC80"
         assert style["pencolor"] == "#6C8EBF"
+
+
+class TestMultiCloudContainerTypes:
+    def test_aws_vpc_is_container(self):
+        assert is_container_type("aws/vpc") is True
+
+    def test_gcp_vpc_is_container(self):
+        assert is_container_type("gcp/vpc") is True
+
+    def test_k8s_namespace_is_container(self):
+        assert is_container_type("k8s/namespace") is True
+
+    def test_aws_ec2_is_not_container(self):
+        assert is_container_type("aws/ec2") is False

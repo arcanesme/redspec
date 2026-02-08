@@ -27,6 +27,7 @@ class GenerateRequest(BaseModel):
     direction: str | None = None
     dpi: int | None = None
     format: str | None = None
+    glow: bool | None = None
 
 
 def create_app(output_dir: Path | None = None) -> FastAPI:
@@ -122,6 +123,7 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
                 tmp_output,
                 icon_registry=registry,
                 out_format=out_format,
+                glow=body.glow,
             )
 
             organized = organize_output(

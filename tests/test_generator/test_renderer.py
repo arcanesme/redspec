@@ -338,3 +338,131 @@ class TestRenderStrictMode:
         output = tmp_path / "fallback.png"
         result = render(spec, str(output), strict=False)
         assert result.exists()
+
+
+class TestRenderGlowParameter:
+    def test_glow_true_svg_dark_applies_enhancement(self, tmp_path):
+        """SVG + dark theme + glow=True → <style> injected."""
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Glow On", "theme": "dark"},
+            "resources": [{"type": "azure/vm", "name": "vm1"}],
+        })
+        output = tmp_path / "glow_on.svg"
+        result = render(spec, str(output), out_format="svg", glow=True)
+        assert result.exists()
+        content = result.read_text(encoding="utf-8")
+        assert "<style" in content
+
+    def test_glow_false_svg_dark_skips_enhancement(self, tmp_path):
+        """SVG + dark theme + glow=False → no drop-shadow injected."""
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Glow Off", "theme": "dark"},
+            "resources": [{"type": "azure/vm", "name": "vm1"}],
+        })
+        output = tmp_path / "glow_off.svg"
+        result = render(spec, str(output), out_format="svg", glow=False)
+        assert result.exists()
+        content = result.read_text(encoding="utf-8")
+        assert "drop-shadow" not in content
+
+    def test_glow_none_preserves_legacy(self, tmp_path):
+        """SVG + dark theme + glow=None → <style> injected (backward compat)."""
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Glow Legacy", "theme": "dark"},
+            "resources": [{"type": "azure/vm", "name": "vm1"}],
+        })
+        output = tmp_path / "glow_legacy.svg"
+        result = render(spec, str(output), out_format="svg", glow=None)
+        assert result.exists()
+        content = result.read_text(encoding="utf-8")
+        assert "<style" in content
+
+    def test_glow_true_png_no_effect(self, tmp_path):
+        """PNG + glow=True → valid PNG, no crash."""
+        spec = DiagramSpec.model_validate({
+            "diagram": {"name": "Glow PNG", "theme": "dark"},
+            "resources": [{"type": "azure/vm", "name": "vm1"}],
+        })
+        output = tmp_path / "glow.png"
+        result = render(spec, str(output), out_format="png", glow=True)
+        assert result.exists()
+        assert result.suffix == ".png"
+
+
+class TestRenderWithStyleRef:
+    def test_style_ref_applies_preset(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "connection_styles": [
+                {"name": "data-flow", "color": "#0078D4", "penwidth": "2.0"},
+            ],
+            "resources": [
+                {"type": "azure/vm", "name": "a"},
+                {"type": "azure/vm", "name": "b"},
+            ],
+            "connections": [
+                {"from": "a", "to": "b", "style_ref": "data-flow"},
+            ],
+        })
+        output = tmp_path / "style_ref.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+    def test_inline_overrides_preset(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "connection_styles": [
+                {"name": "data-flow", "color": "#0078D4"},
+            ],
+            "resources": [
+                {"type": "azure/vm", "name": "a"},
+                {"type": "azure/vm", "name": "b"},
+            ],
+            "connections": [
+                {"from": "a", "to": "b", "style_ref": "data-flow", "color": "#FF0000"},
+            ],
+        })
+        output = tmp_path / "override.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+
+class TestRenderWithZones:
+    def test_zones_produce_output(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "resources": [
+                {"type": "azure/vm", "name": "web"},
+                {"type": "azure/vm", "name": "db"},
+            ],
+            "zones": [
+                {"name": "DMZ", "resources": ["web"], "style": "dmz"},
+            ],
+            "connections": [{"from": "web", "to": "db"}],
+        })
+        output = tmp_path / "zones.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+
+class TestRenderWithMetadata:
+    def test_metadata_renders(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "resources": [
+                {"type": "azure/vm", "name": "vm1", "metadata": {"sku": "D2s_v3"}},
+            ],
+        })
+        output = tmp_path / "metadata.png"
+        result = render(spec, str(output))
+        assert result.exists()
+
+
+class TestRenderWithLegend:
+    def test_legend_produces_output(self, tmp_path):
+        spec = DiagramSpec.model_validate({
+            "diagram": {"legend": True},
+            "resources": [
+                {"type": "azure/vm", "name": "vm1"},
+                {"type": "azure/app-service", "name": "web"},
+            ],
+        })
+        output = tmp_path / "legend.png"
+        result = render(spec, str(output))
+        assert result.exists()

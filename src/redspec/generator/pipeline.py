@@ -41,6 +41,7 @@ def generate(
     out_format: str = "png",
     direction_override: str | None = None,
     dpi_override: int | None = None,
+    glow: bool | None = None,
 ) -> Path:
     """Generate a diagram image from a DiagramSpec.
 
@@ -57,4 +58,5 @@ def generate(
         out_format=out_format,
         direction_override=direction_override,
         dpi_override=dpi_override,
+        glow=glow,
     )

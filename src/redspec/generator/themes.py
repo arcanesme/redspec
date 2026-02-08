@@ -143,7 +143,7 @@ _THEMES: dict[str, dict[str, dict[str, Any]]] = {
             "penwidth": "2.0",
             "fontname": _SHARED_FONT,
             "fontsize": "11",
-            "fontcolor": "#B0BEC5",
+            "fontcolor": "#E0E0E0",
             "arrowsize": "0.8",
             "arrowhead": "vee",
         },
@@ -153,7 +153,7 @@ _THEMES: dict[str, dict[str, dict[str, Any]]] = {
             "fontcolor": "#FFFFFF",
             "pencolor": "#0078D4",
             "penwidth": "3.0",
-            "bgcolor": "#0D1B2A",
+            "bgcolor": "#0D1B2A80",
             "style": "rounded,filled",
             "labeljust": "l",
             "labelloc": "t",
@@ -173,3 +173,17 @@ def get_theme(name: str = "default") -> dict[str, dict[str, Any]]:
             f"Unknown theme {name!r}. Valid themes: {', '.join(sorted(VALID_THEMES))}"
         )
     return _THEMES[name]
+
+
+def register_custom_theme(name: str, theme_dict: dict[str, dict[str, Any]]) -> None:
+    """Register a custom theme for use in rendering.
+
+    The theme_dict must have keys: graph_attr, node_attr, edge_attr, cluster_base.
+    """
+    global VALID_THEMES
+    required_keys = {"graph_attr", "node_attr", "edge_attr", "cluster_base"}
+    missing = required_keys - set(theme_dict.keys())
+    if missing:
+        raise ValueError(f"Custom theme missing required keys: {missing}")
+    _THEMES[name] = theme_dict
+    VALID_THEMES = frozenset(VALID_THEMES | {name})

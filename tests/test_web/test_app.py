@@ -127,3 +127,34 @@ class TestGalleryAPI:
         # Try to traverse out of the output directory
         resp = client.get("/api/gallery/../../../etc/passwd")
         assert resp.status_code in (403, 404)
+
+
+class TestGenerateGlow:
+    _YAML = "resources:\n  - type: azure/vm\n    name: vm1\nconnections: []\n"
+
+    def test_glow_true_returns_200(self, client):
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+            "theme": "dark",
+            "glow": True,
+        })
+        assert resp.status_code == 200
+
+    def test_glow_false_returns_200(self, client):
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+            "theme": "dark",
+            "glow": False,
+        })
+        assert resp.status_code == 200
+
+    def test_glow_omitted_returns_200(self, client):
+        """Backward compat: glow field absent → 200."""
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+            "theme": "dark",
+        })
+        assert resp.status_code == 200

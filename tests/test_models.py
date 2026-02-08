@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from redspec.models.resource import ConnectionDef, ResourceDef
-from redspec.models.diagram import DiagramMeta, DiagramSpec
+from redspec.models.resource import ConnectionDef, ConnectionStyleDef, NodeStyle, ResourceDef
+from redspec.models.diagram import AnnotationDef, DiagramMeta, DiagramSpec, ZoneDef
 
 
 class TestResourceDef:
@@ -55,6 +55,58 @@ class TestResourceDef:
     def test_missing_name_raises(self):
         with pytest.raises(ValidationError):
             ResourceDef(type="azure/vm")  # type: ignore[call-arg]
+
+    def test_resource_with_metadata(self):
+        r = ResourceDef(
+            type="azure/vm", name="vm1",
+            metadata={"sku": "Standard_D2s_v3", "cost": "$100/mo"},
+        )
+        assert r.metadata["sku"] == "Standard_D2s_v3"
+
+    def test_metadata_defaults_empty(self):
+        r = ResourceDef(type="azure/vm", name="vm1")
+        assert r.metadata == {}
+
+    def test_resource_with_style(self):
+        r = ResourceDef(
+            type="azure/vm", name="vm1",
+            style=NodeStyle(color="#FF0000", shape="box"),
+        )
+        assert r.style is not None
+        assert r.style.color == "#FF0000"
+        assert r.style.shape == "box"
+
+    def test_style_defaults_none(self):
+        r = ResourceDef(type="azure/vm", name="vm1")
+        assert r.style is None
+
+
+class TestNodeStyle:
+    def test_all_fields(self):
+        s = NodeStyle(color="#FF0000", shape="box", border="dashed", fontcolor="#000000")
+        assert s.color == "#FF0000"
+        assert s.shape == "box"
+        assert s.border == "dashed"
+        assert s.fontcolor == "#000000"
+
+    def test_defaults_none(self):
+        s = NodeStyle()
+        assert s.color is None
+        assert s.shape is None
+        assert s.border is None
+        assert s.fontcolor is None
+
+
+class TestConnectionStyleDef:
+    def test_basic_style(self):
+        s = ConnectionStyleDef(name="data-flow", color="#0078D4", style="dashed", penwidth="2.0")
+        assert s.name == "data-flow"
+        assert s.color == "#0078D4"
+
+    def test_minimal_style(self):
+        s = ConnectionStyleDef(name="default")
+        assert s.color is None
+        assert s.arrowhead is None
 
 
 class TestConnectionDef:
@@ -117,6 +169,37 @@ class TestConnectionDef:
         assert c.minlen is None
         assert c.constraint is None
 
+    def test_style_ref_field(self):
+        c = ConnectionDef(**{"from": "a", "to": "b", "style_ref": "data-flow"})
+        assert c.style_ref == "data-flow"
+
+    def test_style_ref_defaults_none(self):
+        c = ConnectionDef(**{"from": "a", "to": "b"})
+        assert c.style_ref is None
+
+
+class TestAnnotationDef:
+    def test_basic(self):
+        a = AnnotationDef(text="NIST 800-53 compliant")
+        assert a.text == "NIST 800-53 compliant"
+        assert a.position is None
+
+    def test_with_position(self):
+        a = AnnotationDef(text="Note", position="top-right")
+        assert a.position == "top-right"
+
+
+class TestZoneDef:
+    def test_basic(self):
+        z = ZoneDef(name="DMZ", resources=["fw", "lb"])
+        assert z.name == "DMZ"
+        assert z.resources == ["fw", "lb"]
+        assert z.style is None
+
+    def test_with_style(self):
+        z = ZoneDef(name="Private", resources=["db"], style="private")
+        assert z.style == "private"
+
 
 class TestDiagramMeta:
     def test_defaults(self):
@@ -166,6 +249,26 @@ class TestDiagramMeta:
     def test_dpi_too_high_raises(self):
         with pytest.raises(ValidationError, match="dpi"):
             DiagramMeta(dpi=700)
+
+    def test_legend_default_false(self):
+        m = DiagramMeta()
+        assert m.legend is False
+
+    def test_legend_true(self):
+        m = DiagramMeta(legend=True)
+        assert m.legend is True
+
+    def test_annotations_default_empty(self):
+        m = DiagramMeta()
+        assert m.annotations == []
+
+    def test_animation_default_none(self):
+        m = DiagramMeta()
+        assert m.animation is None
+
+    def test_animation_set(self):
+        m = DiagramMeta(animation="flow")
+        assert m.animation == "flow"
 
 
 class TestDiagramSpec:
@@ -225,3 +328,40 @@ class TestDiagramSpec:
         spec = DiagramSpec.model_validate(data)
         assert spec.connections[0].color == "#FF0000"
         assert spec.connections[0].penwidth == "2.0"
+
+    def test_variables_default_empty(self):
+        spec = DiagramSpec.model_validate({})
+        assert spec.variables == {}
+
+    def test_variables_parsed(self):
+        data = {"variables": {"env": "prod", "region": "eastus"}}
+        spec = DiagramSpec.model_validate(data)
+        assert spec.variables == {"env": "prod", "region": "eastus"}
+
+    def test_connection_styles_default_empty(self):
+        spec = DiagramSpec.model_validate({})
+        assert spec.connection_styles == []
+
+    def test_connection_styles_parsed(self):
+        data = {
+            "connection_styles": [
+                {"name": "data-flow", "color": "#0078D4", "style": "dashed"},
+            ],
+        }
+        spec = DiagramSpec.model_validate(data)
+        assert len(spec.connection_styles) == 1
+        assert spec.connection_styles[0].name == "data-flow"
+
+    def test_zones_default_empty(self):
+        spec = DiagramSpec.model_validate({})
+        assert spec.zones == []
+
+    def test_zones_parsed(self):
+        data = {
+            "zones": [
+                {"name": "DMZ", "resources": ["fw", "lb"], "style": "dmz"},
+            ],
+        }
+        spec = DiagramSpec.model_validate(data)
+        assert len(spec.zones) == 1
+        assert spec.zones[0].name == "DMZ"

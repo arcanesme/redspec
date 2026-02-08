@@ -1,5 +1,6 @@
 """Generate starter YAML templates for architecture diagrams."""
 
+_SCHEMA_COMMENT = "# yaml-language-server: $schema=https://redspec.dev/schemas/redspec-spec.json\n"
 
 _TEMPLATES: dict[str, str] = {
     "azure": """\
@@ -125,17 +126,110 @@ connections:
     to: api-gateway
     label: notifications
 """,
+    "aws": """\
+diagram:
+  name: My AWS Architecture
+  layout: auto
+  direction: TB
+  theme: default
+
+resources:
+  - type: aws/vpc
+    name: vpc-main
+    children:
+      - type: aws/ec2
+        name: web-server
+      - type: aws/rds
+        name: database
+  - type: aws/s3
+    name: static-assets
+  - type: aws/cloudfront
+    name: cdn
+
+connections:
+  - from: cdn
+    to: web-server
+    label: origin
+  - from: web-server
+    to: database
+    label: queries
+  - from: cdn
+    to: static-assets
+    label: static content
+""",
+    "gcp": """\
+diagram:
+  name: My GCP Architecture
+  layout: auto
+  direction: TB
+  theme: default
+
+resources:
+  - type: gcp/vpc
+    name: vpc-main
+    children:
+      - type: gcp/compute-engine
+        name: app-server
+      - type: gcp/cloud-sql
+        name: database
+  - type: gcp/gcs
+    name: storage-bucket
+  - type: gcp/load-balancing
+    name: load-balancer
+
+connections:
+  - from: load-balancer
+    to: app-server
+    label: traffic
+  - from: app-server
+    to: database
+    label: queries
+  - from: app-server
+    to: storage-bucket
+    label: files
+""",
+    "k8s": """\
+diagram:
+  name: Kubernetes Deployment
+  layout: auto
+  direction: TB
+  theme: default
+
+resources:
+  - type: k8s/namespace
+    name: production
+    children:
+      - type: k8s/deployment
+        name: web-deploy
+      - type: k8s/service
+        name: web-svc
+      - type: k8s/ingress
+        name: web-ingress
+
+connections:
+  - from: web-ingress
+    to: web-svc
+    label: routes
+  - from: web-svc
+    to: web-deploy
+    label: selects
+""",
 }
 
 
-def generate_template(template_name: str = "azure") -> str:
+def generate_template(template_name: str = "azure", include_schema_header: bool = True) -> str:
     """Return a YAML template string for the given template variant.
 
     Args:
         template_name: One of "azure", "m365", "dynamics365",
-                       "power-platform", "multi-cloud".
+                       "power-platform", "multi-cloud", "aws", "gcp", "k8s".
+        include_schema_header: Whether to prepend the yaml-language-server
+                               schema comment.
 
     Returns:
         A multi-line YAML string with an example architecture.
     """
-    return _TEMPLATES[template_name]
+    content = _TEMPLATES[template_name]
+    if include_schema_header:
+        return _SCHEMA_COMMENT + content
+    return content

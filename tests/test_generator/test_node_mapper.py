@@ -7,7 +7,7 @@ from diagrams.azure.security import KeyVaults
 from diagrams.azure.integration import APIManagement
 from diagrams.azure.storage import StorageAccounts
 
-from redspec.generator.node_mapper import resolve_node_class
+from redspec.generator.node_mapper import resolve_node_class, AWS_NODE_MAP, GCP_NODE_MAP, K8S_NODE_MAP
 
 
 class TestResolveNodeClass:
@@ -61,3 +61,56 @@ class TestResolveNodeClass:
         # "cosmos-db" contains "cosmos" which is in the map
         cls = resolve_node_class("azure/cosmos-db")
         assert cls is CosmosDb
+
+    def test_azure_app_service(self):
+        cls = resolve_node_class("azure/app-service")
+        assert cls is not None
+
+    def test_azure_without_namespace(self):
+        cls = resolve_node_class("app-service")
+        assert cls is not None
+
+    def test_unknown_returns_none_simple(self):
+        cls = resolve_node_class("completely-unknown-xyz")
+        assert cls is None
+
+
+class TestAWSNodeMap:
+    def test_aws_ec2(self):
+        if AWS_NODE_MAP:
+            cls = resolve_node_class("aws/ec2")
+            assert cls is not None
+
+    def test_aws_s3(self):
+        if AWS_NODE_MAP:
+            cls = resolve_node_class("aws/s3")
+            assert cls is not None
+
+    def test_aws_namespace_routing(self):
+        if AWS_NODE_MAP:
+            cls = resolve_node_class("aws/lambda")
+            assert cls is not None
+
+
+class TestGCPNodeMap:
+    def test_gcp_compute_engine(self):
+        if GCP_NODE_MAP:
+            cls = resolve_node_class("gcp/compute-engine")
+            assert cls is not None
+
+    def test_gcp_gcs(self):
+        if GCP_NODE_MAP:
+            cls = resolve_node_class("gcp/gcs")
+            assert cls is not None
+
+
+class TestK8SNodeMap:
+    def test_k8s_pod(self):
+        if K8S_NODE_MAP:
+            cls = resolve_node_class("k8s/pod")
+            assert cls is not None
+
+    def test_k8s_deployment(self):
+        if K8S_NODE_MAP:
+            cls = resolve_node_class("k8s/deployment")
+            assert cls is not None

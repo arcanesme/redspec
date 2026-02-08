@@ -1,0 +1,92 @@
+name: "Redspec Generate"
+description: "Generate architecture diagrams from YAML specs on PRs"
+
+inputs:
+  yaml-pattern:
+    description: "Glob pattern for YAML files"
+    default: "**/*.yaml"
+    required: false
+  output-dir:
+    description: "Output directory for generated diagrams"
+    default: "./redspec-output"
+    required: false
+  format:
+    description: "Output format (png, svg, pdf)"
+    default: "svg"
+    required: false
+  python-version:
+    description: "Python version to use"
+    default: "3.12"
+    required: false
+  post-comment:
+    description: "Post diagram images as PR comment"
+    default: "true"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install Graphviz
+      shell: bash
+      run: |
+        if [ "$(uname)" = "Linux" ]; then
+          sudo apt-get update && sudo apt-get install -y graphviz
+        elif [ "$(uname)" = "Darwin" ]; then
+          brew install graphviz
+        fi
+
+    - name: Install redspec
+      shell: bash
+      run: pip install redspec
+
+    - name: Generate diagrams
+      shell: bash
+      run: |
+        ${{ github.action_path }}/entrypoint.sh \
+          "${{ inputs.yaml-pattern }}" \
+          "${{ inputs.output-dir }}" \
+          "${{ inputs.format }}"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: redspec-diagrams
+        path: ${{ inputs.output-dir }}
+
+    - name: Post PR comment
+      if: ${{ inputs.post-comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          const outputDir = '${{ inputs.output-dir }}';
+          const format = '${{ inputs.format }}';
+
+          let body = '## Redspec Diagrams\n\n';
+          body += 'Generated architecture diagrams from this PR:\n\n';
+
+          const files = fs.readdirSync(outputDir).filter(f => f.endsWith(`.${format}`));
+          for (const file of files) {
+            body += `### ${file}\n`;
+            if (format === 'svg' || format === 'png') {
+              body += `![${file}](${outputDir}/${file})\n\n`;
+            } else {
+              body += `See artifact: ${file}\n\n`;
+            }
+          }
+
+          body += '\n---\n*Generated with [Redspec](https://github.com/redspec/redspec)*';
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body,
+          });

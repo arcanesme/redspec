@@ -46,3 +46,19 @@ class IconPackNotFoundError(RedspecError):
 
 class YAMLParseError(RedspecError):
     """Raised when the input YAML is invalid."""
+
+
+class IncludeFileNotFoundError(RedspecError):
+    """Raised when an included YAML file cannot be found."""
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        super().__init__(f"Included file not found: '{path}'")
+
+
+class UndefinedVariableError(RedspecError):
+    """Raised when a ${variable} reference cannot be resolved."""
+
+    def __init__(self, variable: str) -> None:
+        self.variable = variable
+        super().__init__(f"Undefined variable: '${{{variable}}}'")

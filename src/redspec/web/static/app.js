@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch("/api/templates/azure")
         .then(r => r.json())
         .then(data => editor.setValue(data.content))
-        .catch(() => {});
+        .catch(() => { });
 
     // Populate template picker
     fetch("/api/templates")
@@ -48,6 +48,21 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("dpi-label").textContent = e.target.value;
     });
 
+    // Theme picker — auto-toggle glow on dark/presentation themes
+    document.getElementById("theme-picker").addEventListener("change", (e) => {
+        const theme = e.target.value;
+        const glowToggle = document.getElementById("glow-toggle");
+        glowToggle.checked = (theme === "dark" || theme === "presentation");
+    });
+
+    // Format picker — dim glow toggle when PNG (glow only applies to SVG)
+    document.getElementById("format-picker").addEventListener("change", updateGlowHint);
+
+    // Dark mode toggle
+    document.getElementById("dark-mode-toggle").addEventListener("change", (e) => {
+        document.body.classList.toggle("light-mode", !e.target.checked);
+    });
+
     // Generate button
     document.getElementById("btn-generate").addEventListener("click", generateDiagram);
 
@@ -57,9 +72,40 @@ document.addEventListener("DOMContentLoaded", () => {
     // Download button
     document.getElementById("btn-download").addEventListener("click", downloadDiagram);
 
+    // Initial glow hint state
+    updateGlowHint();
+
     // Load gallery on startup
     loadGallery();
 });
+
+function updateStatus(message, type) {
+    const statusBar = document.getElementById("status-bar");
+    const statusText = statusBar.querySelector(".status-text");
+    const indicator = statusBar.querySelector(".status-indicator");
+
+    // If elements are missing (legacy fallback), just set textContent
+    if (!statusText) {
+        statusBar.textContent = message;
+        statusBar.className = `status-bar ${type || ''}`;
+        return;
+    }
+
+    statusText.textContent = message;
+    statusBar.className = `status-bar ${type || ''}`;
+}
+
+function updateGlowHint() {
+    const format = document.getElementById("format-picker").value;
+    const glowLabel = document.getElementById("glow-toggle").closest(".toggle-label");
+    if (format !== "svg") {
+        glowLabel.classList.add("disabled-hint");
+        glowLabel.title = "Glow effects only apply to SVG format";
+    } else {
+        glowLabel.classList.remove("disabled-hint");
+        glowLabel.title = "";
+    }
+}
 
 function updatePreviewBackground() {
     const previewArea = document.getElementById("preview-area");
@@ -73,17 +119,17 @@ function updatePreviewBackground() {
 
 async function generateDiagram() {
     const previewArea = document.getElementById("preview-area");
-    const statusBar = document.getElementById("status-bar");
     const downloadBtn = document.getElementById("btn-download");
     const generateBtn = document.getElementById("btn-generate");
 
     previewArea.innerHTML = '<div class="spinner"></div>';
-    statusBar.textContent = "Generating...";
-    statusBar.className = "status-bar";
+    updateStatus("GENERATING...", "");
+
     downloadBtn.disabled = true;
     generateBtn.classList.add("btn-loading");
 
     currentFormat = document.getElementById("format-picker").value;
+    const glowChecked = document.getElementById("glow-toggle").checked;
 
     const payload = {
         yaml_content: editor.getValue(),
@@ -91,6 +137,7 @@ async function generateDiagram() {
         direction: document.getElementById("direction-picker").value,
         dpi: parseInt(document.getElementById("dpi-slider").value),
         format: currentFormat,
+        glow: glowChecked,
     };
 
     try {
@@ -118,22 +165,20 @@ async function generateDiagram() {
         previewArea.appendChild(img);
 
         downloadBtn.disabled = false;
-        statusBar.textContent = "Diagram generated successfully";
-        statusBar.className = "status-bar success";
+        updateStatus("GENERATION COMPLETE", "success");
 
         // Refresh gallery
         loadGallery();
     } catch (err) {
-        previewArea.innerHTML = `<p class="placeholder-text" style="color: var(--danger);">${err.message}</p>`;
-        statusBar.textContent = `Error: ${err.message}`;
-        statusBar.className = "status-bar error";
+        previewArea.innerHTML = `<div class="empty-state"><p style="color: var(--danger);">ERROR</p></div>`;
+        updateStatus(`ERROR: ${err.message}`, "error");
     } finally {
         generateBtn.classList.remove("btn-loading");
     }
 }
 
 async function validateYAML() {
-    const statusBar = document.getElementById("status-bar");
+    updateStatus("VALIDATING...", "");
 
     try {
         const resp = await fetch("/api/validate", {
@@ -145,15 +190,12 @@ async function validateYAML() {
         const data = await resp.json();
 
         if (data.valid) {
-            statusBar.textContent = `Valid: ${data.name} (${data.resources} resources, ${data.connections} connections)`;
-            statusBar.className = "status-bar success";
+            updateStatus(`VALID: ${data.name} (${data.resources} RES, ${data.connections} CONN)`, "success");
         } else {
-            statusBar.textContent = `Invalid: ${data.error}`;
-            statusBar.className = "status-bar error";
+            updateStatus(`INVALID: ${data.error}`, "error");
         }
     } catch (err) {
-        statusBar.textContent = `Validation error: ${err.message}`;
-        statusBar.className = "status-bar error";
+        updateStatus(`VALIDATION ERROR: ${err.message}`, "error");
     }
 }
 

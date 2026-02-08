@@ -1,0 +1,203 @@
+diagram:
+  name: "AKS End-to-End — NIST 800-53 Compliant"
+  direction: TB
+  theme: presentation
+  dpi: 200
+
+resources:
+  # ── NIST AC / IA: Identity & Access Control ──────────────────
+  - type: azure/subscription
+    name: "NIST Subscription"
+    children:
+
+      # ── Identity Plane ───────────────────────────────────────
+      - type: azure/resource-group
+        name: "Identity & Access (AC / IA)"
+        children:
+          - type: azure/active-directory
+            name: "Azure AD (RBAC)"
+          - type: azure/conditional-access
+            name: "Conditional Access"
+          - type: azure/managed-identity
+            name: "AKS Managed Identity"
+
+      # ── NIST AU / SI: Monitoring & Incident Response ─────────
+      - type: azure/resource-group
+        name: "Audit & SIEM (AU / SI / IR)"
+        children:
+          - type: azure/log-analytics
+            name: "Log Analytics Workspace"
+          - type: azure/monitor
+            name: "Azure Monitor"
+          - type: azure/sentinel
+            name: "Microsoft Sentinel"
+          - type: azure/application-insights
+            name: "App Insights"
+
+      # ── NIST SC: Network Perimeter ───────────────────────────
+      - type: azure/resource-group
+        name: "Network Perimeter (SC)"
+        children:
+          - type: azure/vnet
+            name: "Hub VNet"
+            children:
+              - type: azure/subnet
+                name: "Firewall Subnet"
+                children:
+                  - type: azure/firewall
+                    name: "Azure Firewall"
+              - type: azure/subnet
+                name: "AppGW Subnet"
+                children:
+                  - type: azure/application-gateway
+                    name: "App Gateway / WAF"
+              - type: azure/subnet
+                name: "VPN Subnet"
+                children:
+                  - type: azure/vpn-gateway
+                    name: "VPN Gateway"
+
+      # ── NIST SC / CM: AKS Workload ──────────────────────────
+      - type: azure/resource-group
+        name: "AKS Workload (SC / CM)"
+        children:
+          - type: azure/vnet
+            name: "Spoke VNet"
+            children:
+              - type: azure/subnet
+                name: "AKS Node Subnet"
+                children:
+                  - type: azure/aks
+                    name: "AKS Cluster"
+              - type: azure/subnet
+                name: "Private Endpoint Subnet"
+                children:
+                  - type: azure/private-endpoint
+                    name: "PaaS Private Endpoints"
+
+      # ── NIST SC: Secrets & Encryption ────────────────────────
+      - type: azure/resource-group
+        name: "Encryption & Secrets (SC)"
+        children:
+          - type: azure/key-vault
+            name: "Key Vault (CMK + Secrets)"
+          - type: azure/acr
+            name: "Container Registry"
+          - type: azure/storage
+            name: "Encrypted Storage"
+
+      # ── NIST SC: Data Tier ───────────────────────────────────
+      - type: azure/resource-group
+        name: "Data Tier (SC)"
+        children:
+          - type: azure/sql-database
+            name: "Azure SQL (TDE)"
+          - type: azure/cosmos-db
+            name: "Cosmos DB"
+          - type: azure/redis
+            name: "Redis Cache"
+
+      # ── DevSecOps Pipeline ───────────────────────────────────
+      - type: azure/resource-group
+        name: "DevSecOps Pipeline (SA / CM)"
+        children:
+          - type: azure/devops
+            name: "Azure DevOps"
+          - type: azure/security-center
+            name: "Defender for Cloud"
+
+connections:
+  # ── Identity flows ──────────────────────────────────────────
+  - from: "Azure AD (RBAC)"
+    to: "Conditional Access"
+    label: "Policy gate"
+  - from: "Conditional Access"
+    to: "AKS Managed Identity"
+    label: "Token issue"
+  - from: "AKS Managed Identity"
+    to: "AKS Cluster"
+    label: "Workload identity"
+    color: "#FFB300"
+
+  # ── Network path: ingress ───────────────────────────────────
+  - from: "VPN Gateway"
+    to: "Azure Firewall"
+    label: "On-prem traffic"
+  - from: "Azure Firewall"
+    to: "App Gateway / WAF"
+    label: "Filtered traffic"
+    color: "#FF5252"
+  - from: "App Gateway / WAF"
+    to: "AKS Cluster"
+    label: "HTTPS ingress"
+    color: "#4FC3F7"
+
+  # ── AKS → data tier via private endpoints ───────────────────
+  - from: "AKS Cluster"
+    to: "PaaS Private Endpoints"
+    label: "Private link"
+    style: dashed
+  - from: "PaaS Private Endpoints"
+    to: "Azure SQL (TDE)"
+    label: "SQL"
+    style: dashed
+  - from: "PaaS Private Endpoints"
+    to: "Cosmos DB"
+    label: "NoSQL"
+    style: dashed
+  - from: "PaaS Private Endpoints"
+    to: "Redis Cache"
+    label: "Cache"
+    style: dashed
+
+  # ── AKS → secrets & images ─────────────────────────────────
+  - from: "AKS Cluster"
+    to: "Key Vault (CMK + Secrets)"
+    label: "CSI secrets"
+    color: "#CE93D8"
+  - from: "AKS Cluster"
+    to: "Container Registry"
+    label: "Pull images"
+  - from: "AKS Cluster"
+    to: "Encrypted Storage"
+    label: "Persistent volumes"
+
+  # ── Observability ───────────────────────────────────────────
+  - from: "AKS Cluster"
+    to: "Log Analytics Workspace"
+    label: "Container logs"
+    color: "#4FC3F7"
+  - from: "AKS Cluster"
+    to: "App Insights"
+    label: "APM telemetry"
+  - from: "Azure Monitor"
+    to: "Log Analytics Workspace"
+    label: "Metrics"
+  - from: "Log Analytics Workspace"
+    to: "Microsoft Sentinel"
+    label: "Security events"
+    color: "#FF5252"
+
+  # ── DevSecOps ───────────────────────────────────────────────
+  - from: "Azure DevOps"
+    to: "Container Registry"
+    label: "CI push"
+  - from: "Azure DevOps"
+    to: "AKS Cluster"
+    label: "CD deploy"
+    color: "#69F0AE"
+  - from: "Defender for Cloud"
+    to: "AKS Cluster"
+    label: "Runtime protection"
+    color: "#FF5252"
+  - from: "Defender for Cloud"
+    to: "Container Registry"
+    label: "Image scanning"
+    color: "#FF5252"
+
+  # ── Firewall egress ────────────────────────────────────────
+  - from: "AKS Cluster"
+    to: "Azure Firewall"
+    label: "Egress control"
+    style: dashed
+    color: "#FF5252"
