@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "redspec"
+version = "0.1.0"
+description = "Generate Azure architecture diagrams from YAML declarations"
+requires-python = ">=3.10"
+dependencies = [
+    "drawpyo>=0.2.5",
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.4", "mypy>=1.10"]
+
+[project.scripts]
+redspec = "redspec.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/redspec"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+src = ["src"]
+
+[tool.mypy]
+packages = ["redspec"]
+mypy_path = "src"

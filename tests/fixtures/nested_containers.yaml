@@ -1,0 +1,23 @@
+diagram:
+  name: Nested Containers Test
+  layout: auto
+
+resources:
+  - type: azure/resource-group
+    name: rg-production
+    children:
+      - type: azure/vnet
+        name: main-vnet
+        children:
+          - type: azure/subnet
+            name: app-subnet
+            children:
+              - type: azure/app-service
+                name: web-app
+      - type: azure/sql-database
+        name: prod-db
+
+connections:
+  - from: web-app
+    to: prod-db
+    label: SQL connection
