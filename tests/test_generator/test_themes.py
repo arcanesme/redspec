@@ -75,24 +75,3 @@ class TestGetTheme:
         assert theme["cluster_base"]["bgcolor"] == "#0D1B2A80"
         assert theme["cluster_base"]["fontcolor"] == "#FFFFFF"
         assert theme["cluster_base"]["style"] == "rounded,filled"
-
-
-class TestRegisterCustomTheme:
-    def test_register_and_use(self):
-        import redspec.generator.themes as themes_mod
-
-        themes_mod.register_custom_theme("test-custom", {
-            "graph_attr": {"bgcolor": "#000000"},
-            "node_attr": {"fontcolor": "#FFFFFF"},
-            "edge_attr": {"color": "#FF0000"},
-            "cluster_base": {"penwidth": "1.0"},
-        })
-        assert "test-custom" in themes_mod.VALID_THEMES
-        theme = themes_mod.get_theme("test-custom")
-        assert theme["graph_attr"]["bgcolor"] == "#000000"
-
-    def test_missing_keys_raises(self):
-        from redspec.generator.themes import register_custom_theme
-        import pytest
-        with pytest.raises(ValueError, match="missing required keys"):
-            register_custom_theme("bad", {"graph_attr": {}})

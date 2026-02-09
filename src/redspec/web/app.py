@@ -45,23 +45,9 @@ class ExportRequest(BaseModel):
     format: str = Field(description="Export format: mermaid, plantuml, or drawio.")
 
 
-class DiffRequest(BaseModel):
-    old_yaml: str
-    new_yaml: str
-    format: str = "svg"
-
-
 class GalleryUpdateRequest(BaseModel):
     yaml_content: str | None = None
     name: str | None = None
-
-
-class CustomThemeRequest(BaseModel):
-    name: str
-    graph_attr: dict[str, str]
-    node_attr: dict[str, str]
-    edge_attr: dict[str, str]
-    cluster_base: dict[str, str]
 
 
 # ---------- Helpers ----------
@@ -261,45 +247,6 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
 
         return JSONResponse({"format": fmt, "content": text})
 
-    # ---- Diff ----
-
-    @app.post("/api/diff")
-    async def diff_diagrams(body: DiffRequest) -> JSONResponse:
-        from redspec.diff import diff_specs
-        from redspec.models.diagram import DiagramSpec
-
-        old_raw = _parse_yaml_content(body.old_yaml)
-        new_raw = _parse_yaml_content(body.new_yaml)
-
-        try:
-            old_spec = DiagramSpec.model_validate(old_raw)
-            new_spec = DiagramSpec.model_validate(new_raw)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-        result = diff_specs(old_spec, new_spec)
-
-        response: dict[str, Any] = {
-            "is_empty": result.is_empty,
-            "added_resources": result.added_resources,
-            "removed_resources": result.removed_resources,
-            "added_connections": result.added_connections,
-            "removed_connections": result.removed_connections,
-            "changed_connections": result.changed_connections,
-        }
-
-        # Render diff SVG if requested and there are differences
-        if not result.is_empty and body.format in ("svg", "png"):
-            from redspec.generator.diff_renderer import render_diff
-
-            with tempfile.TemporaryDirectory() as tmpdir:
-                out_path = str(Path(tmpdir) / f"diff.{body.format}")
-                rendered = render_diff(old_spec, new_spec, out_path, out_format=body.format)
-                if rendered.exists():
-                    response["diff_diagram"] = rendered.read_text(encoding="utf-8") if body.format == "svg" else None
-
-        return JSONResponse(response)
-
     # ---- Gallery CRUD ----
 
     @app.get("/api/gallery")
@@ -365,24 +312,6 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
             meta_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         return JSONResponse({"updated": slug})
-
-    # ---- Custom themes ----
-
-    @app.post("/api/themes/custom")
-    async def register_theme(body: CustomThemeRequest) -> JSONResponse:
-        from redspec.generator.themes import register_custom_theme
-
-        try:
-            register_custom_theme(body.name, {
-                "graph_attr": body.graph_attr,
-                "node_attr": body.node_attr,
-                "edge_attr": body.edge_attr,
-                "cluster_base": body.cluster_base,
-            })
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-        return JSONResponse({"registered": body.name})
 
     # ---- Resources ----
 

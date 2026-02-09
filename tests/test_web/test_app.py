@@ -273,69 +273,6 @@ class TestExportAPI:
         assert resp.status_code == 400
 
 
-class TestDiffAPI:
-    _OLD = (
-        "diagram:\n  name: Old\n"
-        "resources:\n  - type: azure/vm\n    name: vm1\n"
-        "connections: []\n"
-    )
-    _NEW = (
-        "diagram:\n  name: New\n"
-        "resources:\n"
-        "  - type: azure/vm\n    name: vm1\n"
-        "  - type: azure/vm\n    name: vm2\n"
-        "connections: []\n"
-    )
-
-    def test_diff_with_changes(self, client):
-        resp = client.post("/api/diff", json={
-            "old_yaml": self._OLD,
-            "new_yaml": self._NEW,
-        })
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["is_empty"] is False
-        assert "vm2" in data["added_resources"]
-
-    def test_diff_no_changes(self, client):
-        resp = client.post("/api/diff", json={
-            "old_yaml": self._OLD,
-            "new_yaml": self._OLD,
-        })
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["is_empty"] is True
-
-    def test_diff_invalid_yaml(self, client):
-        resp = client.post("/api/diff", json={
-            "old_yaml": "{{bad",
-            "new_yaml": self._NEW,
-        })
-        assert resp.status_code == 400
-
-
-class TestCustomThemeAPI:
-    _THEME = {
-        "name": "my-custom",
-        "graph_attr": {"bgcolor": "#111"},
-        "node_attr": {"fontsize": "14"},
-        "edge_attr": {"color": "#AAA"},
-        "cluster_base": {"style": "rounded"},
-    }
-
-    def test_register_custom_theme(self, client):
-        resp = client.post("/api/themes/custom", json=self._THEME)
-        assert resp.status_code == 200
-        assert resp.json() == {"registered": "my-custom"}
-
-    def test_register_theme_missing_keys(self, client):
-        resp = client.post("/api/themes/custom", json={
-            "name": "bad",
-            "graph_attr": {},
-        })
-        assert resp.status_code == 422  # pydantic validation
-
-
 class TestGenerateGlow:
     _YAML = "resources:\n  - type: azure/vm\n    name: vm1\nconnections: []\n"
 

@@ -133,7 +133,6 @@
                     <button id="btn-zoom-in" class="btn btn-icon" title="Zoom in">+</button>
                     <button id="btn-zoom-reset" class="btn btn-icon" title="Reset zoom">1:1</button>
                     <button id="btn-zoom-out" class="btn btn-icon" title="Zoom out">&minus;</button>
-                    <button id="btn-diff" class="btn btn-small" title="Compare two specs">DIFF</button>
                     <button id="btn-download" class="btn btn-small" disabled>DOWNLOAD</button>
                 </div>
             </div>
@@ -159,68 +158,6 @@
         </div>
         <div id="gallery-grid" class="gallery-grid"></div>
     </section>
-
-    <!-- Diff Modal -->
-    <div id="diff-modal" class="modal-overlay" hidden>
-        <div class="modal-card">
-            <div class="modal-header">
-                <span class="panel-title">// DIFF_COMPARE</span>
-                <button id="diff-close" class="btn btn-icon">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="diff-inputs">
-                    <div class="diff-col">
-                        <label class="label-text">OLD SPEC (YAML)</label>
-                        <textarea id="diff-old" class="diff-textarea" placeholder="Paste old YAML here..."></textarea>
-                    </div>
-                    <div class="diff-col">
-                        <label class="label-text">NEW SPEC (YAML)</label>
-                        <textarea id="diff-new" class="diff-textarea" placeholder="Paste new YAML here..."></textarea>
-                    </div>
-                </div>
-                <div class="diff-actions">
-                    <button id="btn-diff-run" class="btn btn-primary">COMPARE</button>
-                </div>
-                <div id="diff-result" class="diff-result"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Theme Builder Modal -->
-    <div id="theme-modal" class="modal-overlay" hidden>
-        <div class="modal-card modal-wide">
-            <div class="modal-header">
-                <span class="panel-title">// THEME_BUILDER</span>
-                <button id="theme-close" class="btn btn-icon">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="theme-form">
-                    <label class="label-text">THEME NAME</label>
-                    <input type="text" id="theme-name" class="cyber-input" placeholder="my-custom-theme">
-                    <div class="theme-sections">
-                        <div>
-                            <label class="label-text">GRAPH_ATTR</label>
-                            <textarea id="theme-graph" class="theme-textarea" placeholder='{"bgcolor":"#111","fontsize":"16"}'></textarea>
-                        </div>
-                        <div>
-                            <label class="label-text">NODE_ATTR</label>
-                            <textarea id="theme-node" class="theme-textarea" placeholder='{"fontsize":"13"}'></textarea>
-                        </div>
-                        <div>
-                            <label class="label-text">EDGE_ATTR</label>
-                            <textarea id="theme-edge" class="theme-textarea" placeholder='{"color":"#888"}'></textarea>
-                        </div>
-                        <div>
-                            <label class="label-text">CLUSTER_BASE</label>
-                            <textarea id="theme-cluster" class="theme-textarea" placeholder='{"style":"rounded"}'></textarea>
-                        </div>
-                    </div>
-                    <button id="btn-theme-register" class="btn btn-primary">REGISTER THEME</button>
-                </div>
-                <div id="theme-result" class="theme-result"></div>
-            </div>
-        </div>
-    </div>
 
     <!-- CodeMirror 5 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
