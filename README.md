@@ -1,10 +1,13 @@
-# REDSPEC
+<p align="center">
+  <strong>REDSPEC</strong><br>
+  <em>Generate architecture diagrams from YAML declarations</em>
+</p>
 
-Generate architecture diagrams from YAML declarations
-
-![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-0.1.0-red)
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10+-blue" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/version-0.1.0-red" alt="Version">
+</p>
 
 ---
 
@@ -124,7 +127,7 @@ connections:
 ## CLI Reference
 
 | Command | Description |
-| :--- | :--- |
+|---------|-------------|
 | `redspec init [file]` | Create a starter YAML template |
 | `redspec generate <yaml>` | Generate a diagram from YAML |
 | `redspec validate <yaml>` | Validate a YAML file (with optional `--lint`) |
@@ -214,7 +217,7 @@ The web interface provides:
 ### Web API Endpoints
 
 | Endpoint | Method | Description |
-| :--- | :--- | :--- |
+|----------|--------|-------------|
 | `/api/validate` | POST | Validate YAML with optional lint |
 | `/api/generate` | POST | Generate diagram |
 | `/api/export` | POST | Export to text format |
@@ -231,7 +234,7 @@ The web interface provides:
 ## Icon Packs
 
 | Pack | Namespace | Description |
-| :--- | :--- | :--- |
+|------|-----------|-------------|
 | Azure | `azure/` | Azure Public Service Icons (default, auto-downloads) |
 | Microsoft 365 | `m365/` | Microsoft 365 Content Icons |
 | Dynamics 365 | `dynamics365/` | Dynamics 365 Scalable Icons |
@@ -270,7 +273,6 @@ redspec validate arch.yaml --lint
 ```
 
 Built-in rules:
-
 - **max_nesting_depth** -- warn when resource nesting exceeds threshold (default: 5)
 - **naming_pattern** -- enforce naming conventions (default: `^[a-z0-9][a-z0-9-]*$`)
 - **orphan_resources** -- detect resources with no connections
@@ -293,7 +295,7 @@ The action generates diagrams, uploads artifacts, and posts a PR comment with em
 
 ## Project Structure
 
-```text
+```
 src/redspec/
   cli.py              # CLI commands (Click)
   diff.py             # Spec diffing logic
