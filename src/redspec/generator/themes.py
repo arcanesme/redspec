@@ -173,3 +173,20 @@ def get_theme(name: str = "default") -> dict[str, dict[str, Any]]:
             f"Unknown theme {name!r}. Valid themes: {', '.join(sorted(VALID_THEMES))}"
         )
     return _THEMES[name]
+
+
+# ---------------------------------------------------------------------------
+# Default polish preset per theme
+# ---------------------------------------------------------------------------
+
+_THEME_DEFAULT_POLISH: dict[str, str] = {
+    "default": "minimal",
+    "light": "minimal",
+    "dark": "standard",
+    "presentation": "premium",
+}
+
+
+def default_polish_preset(theme_name: str) -> str:
+    """Return the default polish preset name for a given theme."""
+    return _THEME_DEFAULT_POLISH.get(theme_name, "standard")

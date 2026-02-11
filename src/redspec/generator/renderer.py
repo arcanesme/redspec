@@ -216,10 +216,29 @@ def render(
 
     generated = Path(f"{filename}.{out_format}")
 
-    should_glow = glow if glow is not None else (spec.diagram.theme in ("dark", "presentation"))
-    if out_format == "svg" and should_glow:
+    if out_format == "svg":
         from redspec.generator.svg_enhancer import enhance_svg
-        enhance_svg(generated, spec.diagram.theme)
+        from redspec.generator.themes import default_polish_preset
+        from redspec.models.diagram import PolishConfig, resolve_polish
+
+        polish_cfg = spec.diagram.polish
+        if polish_cfg is not None:
+            # User provided explicit polish config — resolve preset defaults
+            resolved = resolve_polish(polish_cfg)
+            enhance_svg(generated, spec.diagram.theme, polish=resolved)
+        elif glow is False:
+            # Explicitly disabled — skip enhancement entirely
+            pass
+        elif glow is True or spec.diagram.theme in ("dark", "presentation"):
+            if glow is True and spec.diagram.theme not in ("dark", "presentation"):
+                # glow=True on a light theme: use standard polish
+                resolved = resolve_polish(PolishConfig(preset="standard"))
+                enhance_svg(generated, spec.diagram.theme, polish=resolved)
+            else:
+                # Legacy path: use theme-appropriate defaults via new system
+                preset = default_polish_preset(spec.diagram.theme)
+                resolved = resolve_polish(PolishConfig(preset=preset))
+                enhance_svg(generated, spec.diagram.theme, polish=resolved)
 
     # SVG animations
     if out_format == "svg" and spec.diagram.animation:

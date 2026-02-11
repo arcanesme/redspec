@@ -38,6 +38,7 @@ class GenerateRequest(BaseModel):
     dpi: int | None = None
     format: str | None = None
     glow: bool | None = None
+    polish: str | None = None
 
 
 class ExportRequest(BaseModel):
@@ -172,6 +173,16 @@ def create_app(output_dir: Path | None = None) -> FastAPI:
                 raw["diagram"]["direction"] = body.direction
             if body.dpi:
                 raw["diagram"]["dpi"] = body.dpi
+            if body.polish:
+                from redspec.models.diagram import VALID_POLISH_PRESETS
+
+                if body.polish not in VALID_POLISH_PRESETS:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid polish preset {body.polish!r}. "
+                        f"Valid presets: {', '.join(sorted(VALID_POLISH_PRESETS))}",
+                    )
+                raw["diagram"]["polish"] = body.polish
 
             spec = DiagramSpec.model_validate(raw)
         except HTTPException:

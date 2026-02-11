@@ -347,9 +347,130 @@
           "default": null,
           "description": "SVG animation type (flow, pulse, build).",
           "title": "Animation"
+        },
+        "polish": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolishConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Visual polish configuration. Accepts a preset name ('minimal', 'standard', 'premium', 'ultra') or a full configuration object."
         }
       },
       "title": "DiagramMeta",
+      "type": "object"
+    },
+    "GlowConfig": {
+      "description": "Configurable glow effect settings.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Whether glow effects are active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "intensity": {
+          "default": 0.8,
+          "description": "Glow intensity (0.0-1.0).",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Intensity",
+          "type": "number"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Glow color override (hex). Defaults to theme accent color.",
+          "title": "Color"
+        },
+        "blur_radius": {
+          "default": 10.0,
+          "description": "Glow blur radius in pixels (0-50).",
+          "maximum": 50.0,
+          "minimum": 0.0,
+          "title": "Blur Radius",
+          "type": "number"
+        },
+        "layers": {
+          "default": 2,
+          "description": "Number of layered glow passes (1-4).",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Layers",
+          "type": "integer"
+        }
+      },
+      "title": "GlowConfig",
+      "type": "object"
+    },
+    "GradientConfig": {
+      "description": "Cluster/node gradient settings.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Whether gradient fills are active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "style": {
+          "default": "azure",
+          "description": "Gradient style. 'azure' uses official Azure design gradients.",
+          "enum": [
+            "linear",
+            "radial",
+            "azure"
+          ],
+          "title": "Style",
+          "type": "string"
+        },
+        "intensity": {
+          "default": 0.6,
+          "description": "Gradient intensity/opacity (0.0-1.0).",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Intensity",
+          "type": "number"
+        }
+      },
+      "title": "GradientConfig",
+      "type": "object"
+    },
+    "IconQualityConfig": {
+      "description": "Icon rendering quality settings.",
+      "properties": {
+        "sharpening": {
+          "default": true,
+          "description": "Apply sharpening filter to icons.",
+          "title": "Sharpening",
+          "type": "boolean"
+        },
+        "glow": {
+          "default": true,
+          "description": "Apply subtle ambient glow to icons.",
+          "title": "Glow",
+          "type": "boolean"
+        },
+        "glow_intensity": {
+          "default": 0.3,
+          "description": "Icon glow intensity (0.0-1.0).",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Glow Intensity",
+          "type": "number"
+        }
+      },
+      "title": "IconQualityConfig",
       "type": "object"
     },
     "NodeStyle": {
@@ -411,6 +532,55 @@
       "title": "NodeStyle",
       "type": "object"
     },
+    "PolishConfig": {
+      "description": "Full visual polish configuration.\n\nCan be specified as a preset name string (``minimal``, ``standard``,\n``premium``, ``ultra``) or as a full configuration object with granular\noverrides.  When a preset is given, it is expanded to its defaults\nbefore any overrides are applied.",
+      "properties": {
+        "preset": {
+          "default": "standard",
+          "description": "Base polish preset that sets defaults for all sub-settings.",
+          "enum": [
+            "minimal",
+            "standard",
+            "premium",
+            "ultra"
+          ],
+          "title": "Preset",
+          "type": "string"
+        },
+        "glow": {
+          "$ref": "#/$defs/GlowConfig",
+          "description": "Glow effect configuration."
+        },
+        "shadow": {
+          "$ref": "#/$defs/ShadowConfig",
+          "description": "Shadow / 3D depth configuration."
+        },
+        "gradient": {
+          "$ref": "#/$defs/GradientConfig",
+          "description": "Gradient fill configuration."
+        },
+        "icon_quality": {
+          "$ref": "#/$defs/IconQualityConfig",
+          "description": "Icon rendering quality."
+        },
+        "glassmorphism": {
+          "default": 0.45,
+          "description": "Glassmorphism fill-opacity for clusters (0.0-1.0).",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Glassmorphism",
+          "type": "number"
+        },
+        "text_halo": {
+          "default": true,
+          "description": "Subtle text halo for readability on dark backgrounds.",
+          "title": "Text Halo",
+          "type": "boolean"
+        }
+      },
+      "title": "PolishConfig",
+      "type": "object"
+    },
     "ResourceDef": {
       "description": "A single resource, optionally containing child resources.",
       "properties": {
@@ -467,6 +637,53 @@
         "name"
       ],
       "title": "ResourceDef",
+      "type": "object"
+    },
+    "ShadowConfig": {
+      "description": "3D depth / shadow effect settings.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Whether shadow/depth effects are active.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "elevation": {
+          "default": 2,
+          "description": "Elevation level (0=flat, 4=highest).",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "title": "Elevation",
+          "type": "integer"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shadow color override (hex).",
+          "title": "Color"
+        },
+        "opacity": {
+          "default": 0.3,
+          "description": "Shadow opacity (0.0-1.0).",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        }
+      },
+      "title": "ShadowConfig",
       "type": "object"
     },
     "ZoneDef": {

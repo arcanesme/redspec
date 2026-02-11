@@ -51,6 +51,13 @@ def main() -> None:
     help="Export to text-based format instead of rendering.",
 )
 @click.option("--report", is_flag=True, default=False, help="Generate PDF report instead of plain diagram.")
+@click.option(
+    "--polish",
+    type=click.Choice(["minimal", "standard", "premium", "ultra"], case_sensitive=False),
+    default=None,
+    help="Visual polish preset (overrides YAML).",
+)
+@click.option("--glow/--no-glow", default=None, help="Enable or disable glow effects.")
 def generate(
     yaml_file: str,
     output: str | None,
@@ -61,6 +68,8 @@ def generate(
     dpi: int | None,
     export_format: str | None,
     report: bool,
+    polish: str | None,
+    glow: bool | None,
 ) -> None:
     """Generate a diagram from a YAML architecture file."""
     from redspec.generator.output_organizer import organize_output
@@ -101,6 +110,13 @@ def generate(
         download_icons()
 
     spec = parse_yaml(yaml_file)
+
+    # Apply --polish override
+    if polish:
+        from redspec.models.diagram import PolishConfig
+
+        spec.diagram.polish = PolishConfig(preset=polish)
+
     registry = IconRegistry()
 
     direction_val = direction.upper() if direction else None
@@ -116,6 +132,7 @@ def generate(
             out_format=out_format,
             direction_override=direction_val,
             dpi_override=dpi_val,
+            glow=glow,
         )
 
         # PDF report mode
@@ -138,6 +155,7 @@ def generate(
                 out_format=out_format,
                 direction_override=direction_val,
                 dpi_override=dpi_val,
+                glow=glow,
             )
 
             # PDF report mode

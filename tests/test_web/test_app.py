@@ -302,3 +302,32 @@ class TestGenerateGlow:
             "theme": "dark",
         })
         assert resp.status_code == 200
+
+
+class TestGeneratePolish:
+    _YAML = "resources:\n  - type: azure/vm\n    name: vm1\nconnections: []\n"
+
+    def test_polish_preset_returns_200(self, client):
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+            "polish": "premium",
+        })
+        assert resp.status_code == 200
+
+    def test_polish_omitted_backward_compat(self, client):
+        """Old clients without polish field still work."""
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+        })
+        assert resp.status_code == 200
+
+    def test_polish_invalid_preset_returns_400(self, client):
+        resp = client.post("/api/generate", json={
+            "yaml_content": self._YAML,
+            "format": "svg",
+            "polish": "bogus",
+        })
+        assert resp.status_code == 400
+        assert "Invalid polish preset" in resp.json()["detail"]

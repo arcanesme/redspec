@@ -256,6 +256,61 @@ class TestGenerate:
         assert "Cannot use both" in result.output
 
 
+class TestGeneratePolish:
+    def test_generate_with_polish_flag(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.svg"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--format", "svg", "--polish", "premium"]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert output.exists()
+
+    def test_generate_invalid_polish_rejected(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.svg"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False):
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--polish", "bogus"]
+            )
+
+        assert result.exit_code != 0
+
+    def test_generate_with_glow_flag(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.svg"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--format", "svg", "--glow"]
+            )
+
+        assert result.exit_code == 0, result.output
+
+    def test_generate_with_no_glow_flag(self, runner, minimal_yaml_path, tmp_path):
+        output = tmp_path / "output.svg"
+
+        with patch("redspec.icons.migration.migrate_flat_cache", return_value=False), \
+             patch("redspec.icons.packs.ALL_PACKS") as mock_packs:
+            mock_pack = MagicMock()
+            mock_pack.downloaded_marker.exists.return_value = True
+            mock_packs.__getitem__ = MagicMock(return_value=mock_pack)
+            result = runner.invoke(
+                main, ["generate", str(minimal_yaml_path), "-o", str(output), "--format", "svg", "--no-glow"]
+            )
+
+        assert result.exit_code == 0, result.output
+
+
 class TestServe:
     def test_serve_help(self, runner):
         with patch("redspec.icons.migration.migrate_flat_cache", return_value=False):
